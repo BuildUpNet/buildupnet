@@ -32,8 +32,11 @@ if (!$post) {
     exit;
 }
 
-$pageTitle       = mb_strlen($post['title']) <= 46 ? $post['title'] . ' | Buildupnet' : $post['title'];          // header.php escapes it (was double-escaped)
-$pageDescription = $post['excerpt'];
+// SEO fields from Admin → Blog → "SEO" box; sensible automatic fallbacks when they are empty
+$pageTitle       = $post['meta_title'] !== '' ? $post['meta_title']
+                 : (mb_strlen($post['title']) <= 46 ? $post['title'] . ' | Buildupnet' : $post['title']);          // header.php escapes it
+$pageDescription = $post['meta_desc'] !== '' ? $post['meta_desc'] : $post['excerpt'];
+if ($post['noindex']) $pageRobots = 'noindex, follow';
 $pageImage       = !empty($post['thumbnail']) ? SITE_URL . '/' . ltrim($post['thumbnail'], '/') : OG_IMAGE_DEFAULT;
 $pageType        = 'article';
 $canonicalUrl    = postUrl($post['slug']);
@@ -181,17 +184,18 @@ $authorNode = $isKnownAuthor
        'worksFor' => ['@id' => SITE_URL . '/#organization']]
     : ['@type' => 'Organization', 'name' => SITE_NAME, 'url' => SITE_URL . '/'];
 $words = str_word_count(strip_tags($post['content']));
-echo '<script type="application/ld+json">' . ldJson([
+$ld = [
     '@context' => 'https://schema.org',
     '@graph' => [
         [
             '@type' => 'BlogPosting',
             'headline' => $post['title'],
-            'description' => $post['excerpt'],
+            'description' => seoTrim($pageDescription, 158, '…'),
             'image' => $pageImage,
             'url' => $postUrl,
             'inLanguage' => 'en-IN',
             'articleSection' => $post['category'],
+            'keywords' => $post['keyword'] !== '' ? $post['keyword'] : null,
             'wordCount' => $words,
             'datePublished' => $post['date'],
             'dateModified' => $modified,
@@ -209,7 +213,9 @@ echo '<script type="application/ld+json">' . ldJson([
             ],
         ],
     ],
-]) . '</script>';
+];
+if ($post['keyword'] === '') unset($ld['@graph'][0]['keywords']);
+echo '<script type="application/ld+json">' . ldJson($ld) . '</script>';
 ?>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
