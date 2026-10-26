@@ -1,0 +1,7 @@
+# No script execution in upload folders
+Options -ExecCGI
+RemoveHandler .php .phtml .php3 .php5 .php7 .phar
+RemoveType .php .phtml .php3 .php5 .php7 .phar
+<FilesMatch "\.(php|phtml|phar|php[0-9])$">
+    Require all denied
+</FilesMatch>

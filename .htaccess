@@ -1,0 +1,65 @@
+# ==========================================
+# BUILDUPNET.COM — routing + security
+# ==========================================
+
+Options -Indexes
+ServerSignature Off
+RewriteEngine On
+
+# 1. Force HTTPS and NON-www (permanent 301 so Google consolidates the two versions).
+#    SITE_URL in includes/config.php, sitemap.xml and robots.txt all use https://buildupnet.com
+RewriteCond %{HTTPS} !=on [OR]
+RewriteCond %{HTTP_HOST} ^www\. [NC]
+RewriteRule ^ https://buildupnet.com%{REQUEST_URI} [R=301,L]
+
+# 2. Protect sensitive files
+<FilesMatch "(?i)^(\.env|\.htaccess|\.htpasswd|composer\.(json|lock)|db-config(\.sample)?\.php|spam-url\.txt|.*\.(sql|bak|dump|ini|log|conf|sqlite|old|orig|swp|zip|tar|gz))$">
+    Require all denied
+</FilesMatch>
+
+# 3. Block hidden files and folders (but allow /.well-known/ for SSL renewal & verification)
+RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+# 3b. Clean URLs
+#   /blog/my-post-slug  ->  blog-post.php?slug=my-post-slug   (old ?slug= URLs are 301-redirected by PHP)
+#   /sitemap.xml        ->  sitemap.php  (generated from the database)
+RewriteRule ^blog/([a-z0-9-]+)/?$ blog-post.php?slug=$1 [L,QSA]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+# /index.php and /index  ->  /   (one URL for the home page)
+RewriteCond %{THE_REQUEST} \s/index(\.php)?[\s?] [NC]
+RewriteRule ^index(\.php)?$ https://buildupnet.com/ [R=301,L]
+
+# 4. Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+    Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+    # Inline scripts/styles are used by the site, so 'unsafe-inline' stays; everything else is locked down.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://www.google.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+</IfModule>
+
+# 5. Performance + SEO: compress and cache static files
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/png  "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType text/css   "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# 6. Custom 404 page
+ErrorDocument 404 /404.php
+
+# 7. PHP hardening (ignored silently on hosts that do not allow it)
+<IfModule mod_php.c>
+    php_flag display_errors off
+    php_flag expose_php off
+</IfModule>

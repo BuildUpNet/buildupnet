@@ -1,0 +1,11 @@
+<IfModule mod_headers.c>
+Header always set X-Robots-Tag "noindex, nofollow"
+Header always set X-Frame-Options "DENY"
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+</IfModule>
+# Admin area: never indexed, no framing, stricter caching
+# Optional extra lock: uncomment and create .htpasswd to add a second password in front of the admin login
+# AuthType Basic
+# AuthName "Restricted"
+# AuthUserFile /home/USERNAME/.htpasswd
+# Require valid-user

@@ -1,0 +1,8 @@
+# robots.txt for https://buildupnet.com
+User-agent: *
+Allow: /
+Disallow: /forms/
+
+# The admin area and internal folders are protected by login / server rules and send noindex headers.
+
+Sitemap: https://buildupnet.com/sitemap.xml
