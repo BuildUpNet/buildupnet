@@ -13,7 +13,7 @@ echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 foreach ($pages as $file) {
     echo '  <url><loc>' . e($file === 'index.php' ? SITE_URL . '/' : SITE_URL . '/' . $file) . "</loc></url>\n";
 }
-foreach (dbRows("SELECT slug, created_at, updated_at FROM blog_posts WHERE status = 'published' AND noindex = 0 ORDER BY created_at DESC") as $p) {
+foreach (dbRows("SELECT slug, created_at, updated_at FROM blog_posts WHERE status = 'published'" . (blogHasSeoColumns() ? ' AND noindex = 0' : '') . " ORDER BY created_at DESC") as $p) {
     echo '  <url><loc>' . e(postUrl($p['slug'])) . '</loc><lastmod>' . date('Y-m-d', strtotime($p['updated_at'] ?: $p['created_at'])) . "</lastmod></url>\n";
 }
 echo "</urlset>\n";

@@ -66,9 +66,18 @@ function e($v): string {
  */
 function sanitizeHtml(string $html): string {
     if (trim($html) === '') return '';
+    // Plain text pasted without any HTML tags: keep the paragraphs / line breaks
+    if ($html === strip_tags($html)) {
+        $paras = preg_split('/\R{2,}/', trim($html));
+        return implode("\n", array_map(fn($p) => '<p>' . nl2br(htmlspecialchars(trim($p), ENT_QUOTES, 'UTF-8'), false) . '</p>', $paras));
+    }
+    // A full page was pasted (<html><head>…<body>): keep only what is inside <body>
+    if (preg_match('#<body[^>]*>(.*)</body>#is', $html, $m)) $html = $m[1];
+    else $html = preg_replace('#<head\b.*?</head>#is', '', $html);
+    $html = preg_replace('#<!DOCTYPE[^>]*>#i', '', $html);
     $allowed = [
         'p','br','hr','h2','h3','h4','h5','h6','strong','b','em','i','u','s','blockquote','q','code','pre','small','sup','sub','mark',
-        'ul','ol','li','dl','dt','dd','a','img','figure','figcaption','table','thead','tbody','tfoot','tr','th','td','div','span','section','article',
+        'ul','ol','li','dl','dt','dd','details','summary','a','img','figure','figcaption','table','thead','tbody','tfoot','tr','th','td','div','span','section','article',
     ];
     $attrs = ['href','title','alt','src','width','height','loading','class','id','colspan','rowspan','target','rel','lang'];
     $prev = libxml_use_internal_errors(true);
@@ -83,8 +92,13 @@ function sanitizeHtml(string $html): string {
             if ($child->nodeType === XML_COMMENT_NODE) { $node->removeChild($child); continue; }
             if ($child->nodeType !== XML_ELEMENT_NODE) continue;
             $tag = strtolower($child->nodeName);
-            if (in_array($tag, ['script','style','iframe','object','embed','form','input','button','textarea','select','link','meta','base','svg','math','noscript'], true)) {
+            if (in_array($tag, ['script','style','iframe','object','embed','form','input','button','textarea','select','link','meta','base','svg','math','noscript','title','head'], true)) {
                 $node->removeChild($child); continue;                         // drop entirely, with content
+            }
+            if ($tag === 'h1') {                                                // the page already has one <h1> (the post title)
+                $h = $child->ownerDocument->createElement('h2');
+                while ($child->firstChild) $h->appendChild($child->firstChild);
+                $node->replaceChild($h, $child); $child = $h; $tag = 'h2';
             }
             if (!in_array($tag, $allowed, true)) {                              // unknown tag: keep its text/children
                 $walk($child);
@@ -115,4 +129,10 @@ function sanitizeHtml(string $html): string {
     $out = '';
     foreach ($root->childNodes as $c) $out .= $doc->saveHTML($c);
     return $out;
+}
+
+/** Plain text from anything that may contain HTML (excerpts, meta descriptions). */
+function plainText(string $text): string {
+    $text = html_entity_decode(strip_tags(preg_replace('#<(script|style)\b.*?</\1>#is', '', $text)), ENT_QUOTES, 'UTF-8');
+    return trim(preg_replace('/\s+/u', ' ', $text));
 }

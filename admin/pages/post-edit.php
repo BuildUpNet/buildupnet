@@ -3,6 +3,11 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
 requirePermission('content');
 
+// This page needs the matching versions of includes/security.php and includes/blog.php (all three come in the same update zip)
+if (!function_exists('plainText') || !function_exists('blogHasSeoColumns')) {
+    exit('<!DOCTYPE html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px"><h2>Files are out of sync</h2><p>Upload <code>includes/security.php</code> and <code>includes/blog.php</code> from the same update zip as this page, then reload.</p></body>');
+}
+
 $id   = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $post = null;
 
@@ -13,59 +18,74 @@ if ($id) {
 }
 
 $pageTitle = $id ? 'Edit Post' : 'New Blog Post';
+$seoReady  = blogHasSeoColumns();      // false until upgrade-blog-seo.sql has been run
 
 // Handle form submit
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfCheck();
-    $title      = trim($_POST['title'] ?? '');
-    $slug       = slugify(trim($_POST['slug'] ?? '') ?: $title);
-    $excerpt    = trim($_POST['excerpt'] ?? '');
-    $category   = trim($_POST['category'] ?? '');
-    $author     = trim($_POST['author'] ?? '');
-    $read_time  = trim($_POST['read_time'] ?? '');
-    $content    = $_POST['content'] ?? '';
-    $metaTitle  = mb_substr(plainText((string)($_POST['meta_title'] ?? '')), 0, 120);
-    $metaDesc   = mb_substr(plainText((string)($_POST['meta_description'] ?? '')), 0, 320);
-    $keyword    = mb_substr(plainText((string)($_POST['focus_keyword'] ?? '')), 0, 120);
-    $noindex    = !empty($_POST['noindex']) ? 1 : 0;
-    $excerpt    = plainText($excerpt);                       // HTML pasted into the excerpt would show as raw tags
-    $status     = ($_POST['status'] ?? '') === 'published' ? 'published' : 'draft';
-    if (!isset(BLOG_CATEGORIES[$category])) $category = 'Business Tips';
-    if ($slug === '') $slug = 'post-' . date('YmdHis');
-    $slug = mb_substr($slug, 0, 190);
-
-    // Thumbnail upload
-    $thumbnail = $post['thumbnail'] ?? '';
-    if (!empty($_FILES['thumbnail']['name'])) {
-        $uploadDir = __DIR__ . '/../../assets/img/blog/';
-        $uploaded  = uploadImage($_FILES['thumbnail'], $uploadDir);
-        if ($uploaded) $thumbnail = 'assets/img/blog/' . $uploaded;
-    }
-
-    if ($id) {
-        $stmt = $conn->prepare("UPDATE blog_posts SET title=?,slug=?,excerpt=?,category=?,author=?,read_time=?,content=?,status=?,thumbnail=?,meta_title=?,meta_description=?,focus_keyword=?,noindex=?,updated_at=NOW() WHERE id=?");
-        $stmt->bind_param('ssssssssssssii', $title, $slug, $excerpt, $category, $author, $read_time, $content, $status, $thumbnail, $metaTitle, $metaDesc, $keyword, $noindex, $id);
-    } else {
-        $stmt = $conn->prepare("INSERT INTO blog_posts (title,slug,excerpt,category,author,read_time,content,status,thumbnail,meta_title,meta_description,focus_keyword,noindex) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        $stmt->bind_param('ssssssssssssi', $title, $slug, $excerpt, $category, $author, $read_time, $content, $status, $thumbnail, $metaTitle, $metaDesc, $keyword, $noindex);
-    }
-
     try {
+        // Cut every text to the size of its database column (a too-long value would otherwise make MySQL refuse the whole save)
+        $cut        = fn(string $v, int $n) => mb_substr(trim($v), 0, $n);
+        $title      = $cut((string)($_POST['title'] ?? ''), 255);
+        $slug       = $cut(slugify(trim((string)($_POST['slug'] ?? '')) ?: $title), 190);
+        $excerpt    = plainText((string)($_POST['excerpt'] ?? ''));       // HTML pasted here would show as raw tags
+        $category   = $cut((string)($_POST['category'] ?? ''), 80);
+        $author     = $cut((string)($_POST['author'] ?? ''), 120);
+        $read_time  = $cut((string)($_POST['read_time'] ?? ''), 40);
+        $content    = (string)($_POST['content'] ?? '');
+        $metaTitle  = $cut(plainText((string)($_POST['meta_title'] ?? '')), 120);
+        $metaDesc   = $cut(plainText((string)($_POST['meta_description'] ?? '')), 320);
+        $keyword    = $cut(plainText((string)($_POST['focus_keyword'] ?? '')), 120);
+        $noindex    = !empty($_POST['noindex']) ? 1 : 0;
+        $status     = ($_POST['status'] ?? '') === 'published' ? 'published' : 'draft';
+        if (!isset(BLOG_CATEGORIES[$category])) $category = 'Business Tips';
+        if ($slug === '') $slug = 'post-' . date('YmdHis');
+
+        // Thumbnail upload (a failed upload keeps the old image instead of breaking the save)
+        $thumbnail = $post['thumbnail'] ?? '';
+        if (!empty($_FILES['thumbnail']['name'])) {
+            $uploaded = uploadImage($_FILES['thumbnail'], __DIR__ . '/../../assets/img/blog/');
+            if ($uploaded) $thumbnail = 'assets/img/blog/' . $uploaded;
+            else flashMessage('error', 'The thumbnail could not be uploaded (use a JPG, PNG or WebP under 8 MB). The post itself was saved.');
+        }
+
+        if ($id) {
+            if ($seoReady) {
+                $stmt = $conn->prepare("UPDATE blog_posts SET title=?,slug=?,excerpt=?,category=?,author=?,read_time=?,content=?,status=?,thumbnail=?,meta_title=?,meta_description=?,focus_keyword=?,noindex=?,updated_at=NOW() WHERE id=?");
+                $stmt->bind_param('ssssssssssssii', $title, $slug, $excerpt, $category, $author, $read_time, $content, $status, $thumbnail, $metaTitle, $metaDesc, $keyword, $noindex, $id);
+            } else {
+                $stmt = $conn->prepare("UPDATE blog_posts SET title=?,slug=?,excerpt=?,category=?,author=?,read_time=?,content=?,status=?,thumbnail=?,updated_at=NOW() WHERE id=?");
+                $stmt->bind_param('sssssssssi', $title, $slug, $excerpt, $category, $author, $read_time, $content, $status, $thumbnail, $id);
+            }
+        } elseif ($seoReady) {
+            $stmt = $conn->prepare("INSERT INTO blog_posts (title,slug,excerpt,category,author,read_time,content,status,thumbnail,meta_title,meta_description,focus_keyword,noindex) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $stmt->bind_param('ssssssssssssi', $title, $slug, $excerpt, $category, $author, $read_time, $content, $status, $thumbnail, $metaTitle, $metaDesc, $keyword, $noindex);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO blog_posts (title,slug,excerpt,category,author,read_time,content,status,thumbnail) VALUES (?,?,?,?,?,?,?,?,?)");
+            $stmt->bind_param('sssssssss', $title, $slug, $excerpt, $category, $author, $read_time, $content, $status, $thumbnail);
+        }
         $stmt->execute();
         flashMessage('success', $id ? 'Post updated successfully.' : 'Post created successfully.');
         header('Location: posts.php');
         exit;
-    } catch (mysqli_sql_exception $ex) {
-        error_log('post save failed: ' . $ex->getMessage());
-        flashMessage('error', $ex->getCode() === 1062 ? 'Another post already uses this URL slug — change the slug.' : 'Error saving post. Please try again.');
+    } catch (Throwable $ex) {
+        // Real reason goes to the server log AND (this page is owner-only) to the screen, so it can be fixed in minutes
+        error_log('post save failed: ' . $ex->getMessage() . ' @ ' . basename($ex->getFile()) . ':' . $ex->getLine());
+        $msg = $ex->getMessage();
+        if ($ex instanceof mysqli_sql_exception && $ex->getCode() === 1062) $msg = 'Another post already uses this URL slug — change the slug.';
+        elseif (stripos($msg, 'Incorrect string value') !== false) $msg = 'The posts table cannot store emoji / special characters. Run upgrade-blog-seo.sql in phpMyAdmin once (it converts the table to utf8mb4).';
+        elseif (stripos($msg, 'Unknown column') !== false) $msg = 'The database is missing the new SEO columns. Run upgrade-blog-seo.sql in phpMyAdmin once.';
+        else $msg = 'Could not save: ' . $msg;
+        flashMessage('error', $msg);
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') $post = array_merge($post ?? [], compact('title', 'slug', 'excerpt', 'category', 'author', 'read_time', 'status') + ['meta_title' => $metaTitle, 'meta_description' => $metaDesc, 'focus_keyword' => $keyword, 'noindex' => $noindex]);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') $post = array_merge($post ?? [], array_filter(compact('title', 'slug', 'excerpt', 'category', 'author', 'read_time', 'status', 'content'), fn($v) => $v !== null) + ['meta_title' => $metaTitle ?? '', 'meta_description' => $metaDesc ?? '', 'focus_keyword' => $keyword ?? '', 'noindex' => $noindex ?? 0]);
 include __DIR__ . '/../includes/admin-header.php';
 ?>
 
 <?php renderFlash(); ?>
+<?php if (!$seoReady): ?><div class="flash flash-error" style="background:#FFF6E5;border-left:4px solid #e69500;color:#8a5a00;">SEO fields are switched off because the database has not been upgraded yet. Run <b>upgrade-blog-seo.sql</b> once in phpMyAdmin, then reload this page.</div><?php endif; ?>
 
 <div class="card">
     <div class="card-header">
@@ -126,7 +146,7 @@ include __DIR__ . '/../includes/admin-header.php';
                     <?php endif; ?>
                     <input type="file" name="thumbnail" accept="image/*">
                 </div>
-                <div class="form-group full-width seo-box">
+                <div class="form-group full-width seo-box" <?php echo $seoReady ? '' : 'hidden'; ?>>
                     <h3 class="seo-title">SEO — how this post looks on Google</h3>
                     <div class="serp" aria-label="Google preview">
                         <div class="serp-url"><?php echo clean(SITE_URL); ?>/blog/<span id="serp_slug">your-slug</span></div>
@@ -171,6 +191,7 @@ include __DIR__ . '/../includes/admin-header.php';
 
 <style>
 .seo-box{background:#f7fafc;border:1px solid var(--a-border);border-radius:10px;padding:16px}
+.seo-box[hidden]{display:none}
 .seo-title{margin:0 0 12px;font-size:1rem}
 .serp{background:#fff;border:1px solid var(--a-border);border-radius:8px;padding:12px 14px;font-family:Arial,sans-serif}
 .serp-url{color:#202124;font-size:.78rem;word-break:break-all}.serp-title{color:#1a0dab;font-size:1.15rem;line-height:1.3;margin:2px 0}

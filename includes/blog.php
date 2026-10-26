@@ -19,7 +19,7 @@ function mapPost(array $r): array {
     return [
         'slug'         => $r['slug'],
         'title'        => $r['title'],
-        'excerpt'      => (string)$r['excerpt'],
+        'excerpt'      => plainText((string)$r['excerpt']),          // old posts may contain HTML here
         'category'     => $r['category'] ?: 'General',
         'author'       => $r['author'] ?: SITE_NAME,
         'author_role'  => $r['author_role'] ?? null,        // set only for people listed in the authors table
@@ -29,26 +29,40 @@ function mapPost(array $r): array {
         'read_time'    => $r['read_time'] ?: '5 min read',
         'thumbnail'    => $thumb,
         'content'      => (string)$r['content'],
+        'meta_title'   => trim((string)($r['meta_title'] ?? '')),
+        'meta_desc'    => plainText((string)($r['meta_description'] ?? '')),
+        'keyword'      => trim((string)($r['focus_keyword'] ?? '')),
+        'noindex'      => !empty($r['noindex']),
     ];
 }
 
-const POST_SELECT = "SELECT p.slug, p.title, p.excerpt, p.category, p.author, p.read_time, p.content, p.thumbnail,
-                            p.created_at, p.updated_at, a.role AS author_role
-                     FROM blog_posts p LEFT JOIN authors a ON a.name = p.author AND a.is_active = 1";
+/** True once upgrade-blog-seo.sql has been run (the site keeps working before that, just without the SEO fields). */
+function blogHasSeoColumns(): bool {
+    static $has = null;
+    if ($has === null) $has = (bool)dbRow("SHOW COLUMNS FROM blog_posts LIKE 'meta_title'");
+    return $has;
+}
+
+function postSelect(): string {
+    return "SELECT p.slug, p.title, p.excerpt, p.category, p.author, p.read_time, p.content, p.thumbnail, "
+         . (blogHasSeoColumns() ? "p.meta_title, p.meta_description, p.focus_keyword, p.noindex, " : "")
+         . "p.created_at, p.updated_at, a.role AS author_role
+            FROM blog_posts p LEFT JOIN authors a ON a.name = p.author AND a.is_active = 1";
+}
 
 /** Published posts, newest first. */
 function blogPosts(int $limit = 0): array {
-    $rows = dbRows(POST_SELECT . " WHERE p.status = 'published' ORDER BY p.created_at DESC" . ($limit > 0 ? " LIMIT " . (int)$limit : ''));
+    $rows = dbRows(postSelect() . " WHERE p.status = 'published' ORDER BY p.created_at DESC" . ($limit > 0 ? " LIMIT " . (int)$limit : ''));
     return array_map('mapPost', $rows);
 }
 
 function blogPostBySlug(string $slug): ?array {
-    $row = dbRow(POST_SELECT . " WHERE p.status = 'published' AND p.slug = ? LIMIT 1", 's', [$slug]);
+    $row = dbRow(postSelect() . " WHERE p.status = 'published' AND p.slug = ? LIMIT 1", 's', [$slug]);
     return $row ? mapPost($row) : null;
 }
 
 function relatedPosts(string $category, string $currentSlug, int $limit = 2): array {
-    $rows = dbRows(POST_SELECT . " WHERE p.status = 'published' AND p.category = ? AND p.slug <> ? ORDER BY p.created_at DESC LIMIT " . (int)$limit,
+    $rows = dbRows(postSelect() . " WHERE p.status = 'published' AND p.category = ? AND p.slug <> ? ORDER BY p.created_at DESC LIMIT " . (int)$limit,
                    'ss', [$category, $currentSlug]);
     return array_map('mapPost', $rows);
 }
