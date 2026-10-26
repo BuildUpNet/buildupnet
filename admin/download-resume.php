@@ -2,6 +2,7 @@
 // Streams a resume to a logged-in admin only. Resumes are NOT web-accessible any other way.
 require_once __DIR__ . '/includes/bootstrap.php';
 requireLogin();
+requirePermission('applications');
 
 $file = (string)($_GET['file'] ?? '');
 if (!preg_match('/^resume_[a-f0-9]{20,48}\.(pdf|doc|docx)$/', $file)) { http_response_code(404); exit('Not found'); }

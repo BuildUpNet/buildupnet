@@ -57,4 +57,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Project form: show the client block or the owner block depending on who gave the project
+  var srcRadios = document.querySelectorAll('input[name="source_type"]');
+  if (srcRadios.length) {
+    var syncSource = function () {
+      var owner = document.querySelector('input[name="source_type"]:checked');
+      var isOwner = owner && owner.value === 'owner_direct';
+      document.querySelectorAll('.src-client').forEach(function (el) { el.style.display = isOwner ? 'none' : ''; });
+      document.querySelectorAll('.src-owner').forEach(function (el) { el.style.display = isOwner ? 'grid' : 'none'; });
+    };
+    srcRadios.forEach(function (r) { r.addEventListener('change', syncSource); });
+    syncSource();
+  }
+
 });

@@ -118,3 +118,62 @@ function uploadFile(array $file, string $folder): ?string {
     if (!move_uploaded_file($file['tmp_name'], rtrim($folder, '/') . '/' . $filename)) return null;
     return $filename;
 }
+
+// ==========================================================
+// Client projects helpers
+// ==========================================================
+const PROJECT_STATUSES = [          // key => [label, badge colour]
+    'lead'        => ['Lead',        'abadge-grey'],
+    'quoted'      => ['Quoted',      'abadge-orange'],
+    'in_progress' => ['In Progress', 'abadge-blue'],
+    'review'      => ['In Review',   'abadge-orange'],
+    'delivered'   => ['Delivered',   'abadge-green'],
+    'on_hold'     => ['On Hold',     'abadge-grey'],
+    'cancelled'   => ['Cancelled',   'abadge-red'],
+];
+const PROJECT_TYPES = ['Website', 'E-commerce', 'Web Application', 'Mobile App', 'UI / UX Design', 'SEO', 'Digital Marketing', 'Maintenance / AMC', 'Other'];
+const PROJECT_PRIORITIES = ['low' => 'Low', 'normal' => 'Normal', 'high' => 'High'];
+// A developer may only move a project between these statuses; owner/manager may use all of them.
+const DEVELOPER_STATUSES = ['in_progress', 'review', 'on_hold'];
+
+function statusBadge(string $status): string {
+    [$label, $class] = PROJECT_STATUSES[$status] ?? [$status, 'abadge-grey'];
+    return '<span class="abadge ' . $class . '">' . clean($label) . '</span>';
+}
+
+/** Indian-style money: 1234567.5 -> ₹12,34,567.50 */
+function inr($amount): string {
+    $n = number_format((float)$amount, 2, '.', '');
+    [$int, $dec] = explode('.', $n);
+    $neg = $int[0] === '-'; $int = ltrim($int, '-');
+    $last3 = substr($int, -3); $rest = substr($int, 0, -3);
+    if ($rest !== '') $last3 = ',' . $last3;
+    $rest = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
+    return ($neg ? '-' : '') . '₹' . $rest . $last3 . ($dec === '00' ? '' : '.' . $dec);
+}
+
+/** Users that can be picked in project forms. $roles = ['developer'] etc. */
+function staffList(array $roles = []): array {
+    $sql = "SELECT id, name, role FROM admin_users WHERE is_active = 1";
+    if ($roles) $sql .= " AND role IN ('" . implode("','", array_map(fn($r) => preg_replace('/[^a-z]/', '', $r), $roles)) . "')";
+    return dbRows($sql . " ORDER BY name");
+}
+
+/** Can the logged-in user open this project? (owner/manager: all, developer: only assigned ones) */
+function canSeeProject(int $projectId): bool {
+    if (can('projects.view_all')) return true;
+    if (!can('projects.view_own')) return false;
+    return (bool)dbRow("SELECT 1 AS x FROM project_developers WHERE project_id = ? AND user_id = ?", 'ii', [$projectId, currentUserId()]);
+}
+
+function fmtDate(?string $d): string {
+    return $d ? date('d M Y', strtotime($d)) : '—';
+}
+
+/** Random 12-character password without look-alike characters (shown to the owner once). */
+function generateTempPassword(): string {
+    $chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $out = '';
+    for ($i = 0; $i < 12; $i++) $out .= $chars[random_int(0, strlen($chars) - 1)];
+    return $out;
+}

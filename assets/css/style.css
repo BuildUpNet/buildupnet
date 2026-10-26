@@ -962,3 +962,19 @@ body.modal-open { overflow: hidden; }
   .cta-band-inner { flex-direction: column; text-align: center; }
   .section { padding: 60px 0; }
 }
+/* ---- Mobile safety (added): grid/flex children may shrink, long words wrap, tiny phones (320px) ---- */
+.newsletter-band > *, .features-grid > *, .blog-grid > *, .footer-grid > * { min-width: 0; }
+.newsletter-form-inline input { min-width: 0; width: 100%; }
+h1, h2, h3, p, li { overflow-wrap: anywhere; }
+@media (max-width: 380px) {
+  .newsletter-band { padding: 28px 18px; }
+  .container { padding-left: 16px; padding-right: 16px; }
+}
+
+/* Comfortable tap targets on touch screens (≥44px) */
+@media (max-width: 768px) {
+  .top-bar-item a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer-col a, .footer-legal a, .footer-social a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer-col li { margin-bottom: 0; }
+  main p a, .blog-content a, .legal-content a { padding: 2px 0; }
+}

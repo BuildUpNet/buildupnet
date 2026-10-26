@@ -5,6 +5,7 @@
 // ==========================================================
 require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
+requirePermission('content');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfCheck();

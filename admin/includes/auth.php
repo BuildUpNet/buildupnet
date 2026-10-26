@@ -45,11 +45,61 @@ function isLoggedIn(): bool {
     return true;
 }
 
+/**
+ * Every protected page calls this first. Besides checking the session it re-reads the account from the
+ * database, so a deactivated user or a changed role takes effect on the very next click.
+ */
 function requireLogin(): void {
     if (!isLoggedIn()) {
         header('Location: ' . getAdminBase() . '/index.php?error=session');
         exit;
     }
+    $u = dbRow("SELECT name, role, is_active, must_change_password FROM admin_users WHERE id = ?", 'i', [(int)$_SESSION['admin_id']]);
+    if (!$u || !(int)$u['is_active'] || !isset(ROLE_PERMISSIONS[$u['role']])) {
+        destroyAdminSession();
+        header('Location: ' . getAdminBase() . '/index.php?error=session');
+        exit;
+    }
+    $_SESSION['admin_role'] = $u['role'];
+    $_SESSION['admin_name'] = $u['name'];
+
+    // A temporary password (new account / reset by the owner) must be replaced before anything else.
+    if ((int)$u['must_change_password'] === 1 && currentAdminPage() !== 'password.php') {
+        header('Location: ' . adminUrl('pages/password.php'));
+        exit;
+    }
+}
+
+// ---------- Roles & permissions (edit this table to change who can do what) ----------
+//   owner     : everything
+//   manager   : creates/edits client projects (sees prices), handles enquiries, job applications and job openings
+//   developer : sees only the projects assigned to them, can post progress updates (no prices)
+const ROLE_PERMISSIONS = [
+    'owner'     => ['*'],
+    'manager'   => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.price', 'projects.update', 'enquiries', 'applications', 'jobs'],
+    'developer' => ['projects.view_own', 'projects.update'],
+];
+const ROLE_LABELS = ['owner' => 'Owner', 'manager' => 'Manager', 'developer' => 'Developer'];
+
+function currentRole(): string { return (string)($_SESSION['admin_role'] ?? ''); }
+function currentUserId(): int  { return (int)($_SESSION['admin_id'] ?? 0); }
+
+function can(string $permission): bool {
+    $perms = ROLE_PERMISSIONS[currentRole()] ?? [];
+    return in_array('*', $perms, true) || in_array($permission, $perms, true);
+}
+
+/** Stops the request with a 403 page when the logged-in role may not do this. */
+function requirePermission(string $permission): void {
+    if (can($permission)) return;
+    http_response_code(403);
+    $pageTitle = 'Not allowed';
+    include __DIR__ . '/admin-header.php';
+    echo '<div class="card"><div class="card-body"><div class="empty-state"><h3>You do not have access to this page</h3>'
+       . '<p>Your role (' . htmlspecialchars(ROLE_LABELS[currentRole()] ?? '') . ') cannot open it. Ask the owner if you need access.</p>'
+       . '<p><a href="' . htmlspecialchars(adminUrl('dashboard.php')) . '" style="color:var(--a-blue);">Back to dashboard</a></p></div></div></div>';
+    include __DIR__ . '/admin-footer.php';
+    exit;
 }
 
 function loginAdmin(array $user): void {
@@ -58,6 +108,7 @@ function loginAdmin(array $user): void {
     $_SESSION['admin_logged_in'] = true;
     $_SESSION['admin_id']        = (int)$user['id'];
     $_SESSION['admin_name']      = (string)$user['name'];
+    $_SESSION['admin_role']      = (string)$user['role'];
     $_SESSION['last_activity']   = time();
 }
 

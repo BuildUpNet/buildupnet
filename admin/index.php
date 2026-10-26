@@ -20,14 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(429);
         $error = 'Too many failed attempts. Please wait 15 minutes and try again.';
     } elseif ($username !== '' && $password !== '') {
-        $stmt = $conn->prepare("SELECT id, name, username, password FROM admin_users WHERE username = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT id, name, username, password, role, is_active FROM admin_users WHERE username = ? LIMIT 1");
         $stmt->bind_param('s', $username);
         $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
         // always run a hash check so response time does not reveal whether the username exists
         $hash = $user['password'] ?? '$2y$10$usesomesillystringforsalt$2y$10$abcdefghijklmnopqrstuv';
-        $ok   = password_verify($password, $hash) && $user;
+        $ok   = password_verify($password, $hash) && $user && (int)$user['is_active'] === 1 && isset(ROLE_PERMISSIONS[$user['role']]);
 
         if ($ok) {
             rateLimitClear($ipKey); rateLimitClear($userKey);
@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $u  = $conn->prepare("UPDATE admin_users SET password=? WHERE id=?");
                 $uid = (int)$user['id']; $u->bind_param('si', $nh, $uid); $u->execute();
             }
+            $lu = $conn->prepare("UPDATE admin_users SET last_login_at = NOW() WHERE id = ?");
+            $luid = (int)$user['id']; $lu->bind_param('i', $luid); $lu->execute();
             loginAdmin($user);
             header('Location: dashboard.php');
             exit;

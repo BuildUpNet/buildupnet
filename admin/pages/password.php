@@ -2,15 +2,16 @@
 require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
 
-$error = '';
+$error   = '';
+$adminId = (int)$_SESSION['admin_id'];
+$user    = dbRow("SELECT password, must_change_password FROM admin_users WHERE id = ?", 'i', [$adminId]);
+$forced  = (int)($user['must_change_password'] ?? 0) === 1;      // temporary password -> must be replaced now
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfCheck();
     $current = (string)($_POST['current'] ?? '');
     $new     = (string)($_POST['new'] ?? '');
     $confirm = (string)($_POST['confirm'] ?? '');
-
-    $adminId = (int)$_SESSION['admin_id'];
-    $user    = dbRow("SELECT password FROM admin_users WHERE id = ?", 'i', [$adminId]);
 
     if (rateLimitHit('pwchange', 5, 900))            $error = 'Too many attempts. Try again in 15 minutes.';
     elseif (!$user || !password_verify($current, $user['password'])) $error = 'Current password is incorrect.';
@@ -19,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($new === $current)                       $error = 'Choose a password different from the current one.';
     else {
         $hash = password_hash($new, PASSWORD_DEFAULT);
-        $st = $conn->prepare("UPDATE admin_users SET password = ? WHERE id = ?");
+        $st = $conn->prepare("UPDATE admin_users SET password = ?, must_change_password = 0 WHERE id = ?");
         $st->bind_param('si', $hash, $adminId); $st->execute();
         session_regenerate_id(true);
         flashMessage('success', 'Password changed.');
@@ -31,6 +32,7 @@ $pageTitle = 'Change Password';
 include __DIR__ . '/../includes/admin-header.php';
 ?>
 <?php renderFlash(); ?>
+<?php if ($forced): ?><div class="flash flash-error" style="background:#FEF3E8;border-left:4px solid #B25A00;color:#B25A00;">You are using a temporary password. Choose your own password to continue.</div><?php endif; ?>
 <div class="card">
     <div class="card-header"><h2>Change Password</h2></div>
     <div class="card-body">
