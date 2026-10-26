@@ -75,6 +75,7 @@ function sanitizeHtml(string $html): string {
     if (preg_match('#<body[^>]*>(.*)</body>#is', $html, $m)) $html = $m[1];
     else $html = preg_replace('#<head\b.*?</head>#is', '', $html);
     $html = preg_replace('#<!DOCTYPE[^>]*>#i', '', $html);
+    if (!class_exists('DOMDocument')) return sanitizeHtmlBasic($html);   // PHP "dom" extension switched off on the server
     $allowed = [
         'p','br','hr','h2','h3','h4','h5','h6','strong','b','em','i','u','s','blockquote','q','code','pre','small','sup','sub','mark',
         'ul','ol','li','dl','dt','dd','details','summary','a','img','figure','figcaption','table','thead','tbody','tfoot','tr','th','td','div','span','section','article',
@@ -84,8 +85,8 @@ function sanitizeHtml(string $html): string {
     $doc  = new DOMDocument('1.0', 'UTF-8');
     $doc->loadHTML('<?xml encoding="UTF-8"><div id="__root">' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
     libxml_clear_errors(); libxml_use_internal_errors($prev);
-    $root = $doc->getElementById('__root');
-    if (!$root) return '';
+    $root = $doc->getElementsByTagName('div')->item(0);          // our wrapper div (getElementById is unreliable on some libxml builds)
+    if (!$root) return sanitizeHtmlBasic($html);
 
     $walk = function (DOMNode $node) use (&$walk, $allowed, $attrs) {
         foreach (iterator_to_array($node->childNodes) as $child) {
@@ -128,7 +129,27 @@ function sanitizeHtml(string $html): string {
     $walk($root);
     $out = '';
     foreach ($root->childNodes as $c) $out .= $doc->saveHTML($c);
-    return $out;
+    return trim($out) !== '' ? $out : sanitizeHtmlBasic($html);          // never show an empty article because of a parser problem
+}
+
+/** Fallback cleaner without the DOM extension: allow-list of tags, every attribute removed except safe link/image URLs. */
+function sanitizeHtmlBasic(string $html): string {
+    $html = preg_replace('#<(script|style|iframe|object|embed|form|svg|head|title)\b.*?</\1>#is', '', $html);
+    $html = preg_replace('#<(/?)h1\b#i', '<$1h2', $html);
+    $html = strip_tags($html, '<p><br><hr><h2><h3><h4><strong><b><em><i><u><blockquote><ul><ol><li><a><img><table><thead><tbody><tr><th><td><details><summary><code><pre>');
+    return preg_replace_callback('#<([a-z0-9]+)\b([^>]*)>#i', function ($m) {
+        $tag = strtolower($m[1]); $keep = '';
+        if (in_array($tag, ['a', 'img'], true)) {
+            foreach (($tag === 'a' ? ['href'] : ['src', 'alt']) as $attr) {
+                if (preg_match('#\b' . $attr . '\s*=\s*(["\'])(.*?)\1#is', $m[2], $a)) {
+                    $v = trim(html_entity_decode($a[2]));
+                    if (in_array($attr, ['href', 'src'], true) && !preg_match('#^(https?://|/|mailto:|tel:|\#)#i', $v)) continue;
+                    $keep .= ' ' . $attr . '="' . htmlspecialchars($v, ENT_QUOTES, 'UTF-8') . '"';
+                }
+            }
+        }
+        return '<' . $tag . $keep . '>';
+    }, $html);
 }
 
 /** Plain text from anything that may contain HTML (excerpts, meta descriptions). */

@@ -84,11 +84,13 @@ document.addEventListener('DOMContentLoaded', function () {
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.12 });
+    }, { threshold: 0, rootMargin: '0px 0px -8% 0px' });   // threshold 0: a very tall element (long article) can never reach 12% visible
 
     document.querySelectorAll('[data-reveal]').forEach(function (el) {
       observer.observe(el);
     });
+  } else {
+    document.querySelectorAll('[data-reveal]').forEach(function (el) { el.classList.add('revealed'); });   // old browsers: show everything
   }
 
 });

@@ -8,7 +8,7 @@
 // ==========================================================
 return [
     'host' => 'localhost',
-    'name' => 'buildupnet_db',
-    'user' => 'root',
-    'pass' => '',
+    'name' => 'u754765993_buildupnet_y',
+    'user' => 'u754765993_buildupnet_y',
+    'pass' => 'n6b:?yN1Q:V9',
 ];

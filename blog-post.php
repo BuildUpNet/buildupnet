@@ -111,7 +111,7 @@ include __DIR__ . '/includes/header.php';
 <!-- ===== Article Body ===== -->
 <section class="section">
     <div class="container" style="max-width: 860px; margin: 0 auto;">
-        <div class="post-body" data-reveal>
+        <div class="post-body">
             <?php echo sanitizeHtml($post['content']); ?>
         </div>
 
