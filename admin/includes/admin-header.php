@@ -46,6 +46,17 @@ if (!isset($pageTitle)) $pageTitle = 'Admin — Buildupnet';
             <?php endif; ?>
             <?php endif; ?>
 
+            <?php if (can('attendance.self')): ?>
+            <span class="sidebar-section-label">Attendance</span>
+            <a href="<?php echo adminUrl('pages/attendance.php'); ?>" class="<?php echo isActivePage('attendance.php'); ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> My Attendance</a>
+            <a href="<?php echo adminUrl('pages/leaves.php'); ?>" class="<?php echo isActivePage('leaves.php'); ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Leave <?php if (can('attendance.manage')) { $pl = (int)(dbRow("SELECT COUNT(*) AS c FROM leave_requests WHERE status = 'pending'")['c'] ?? 0); if ($pl > 0) echo '<span class="sidebar-count">' . $pl . '</span>'; } ?></a>
+            <?php if (can('attendance.manage')): ?>
+            <a href="<?php echo adminUrl('pages/attendance-manage.php'); ?>" class="<?php echo in_array(currentAdminPage(), ['attendance-manage.php', 'attendance-edit.php']) ? 'active' : ''; ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Team Attendance</a>
+            <a href="<?php echo adminUrl('pages/schedules.php'); ?>" class="<?php echo isActivePage('schedules.php'); ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Work Timings</a>
+            <a href="<?php echo adminUrl('pages/holidays.php'); ?>" class="<?php echo isActivePage('holidays.php'); ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Holidays</a>
+            <?php endif; ?>
+            <?php endif; ?>
+
             <?php if (can('content') || can('jobs')): ?>
             <span class="sidebar-section-label">Website</span>
             <?php if (can('content')): ?>

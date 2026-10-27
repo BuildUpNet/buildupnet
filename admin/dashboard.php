@@ -55,6 +55,38 @@ if (can('jobs'))           $cards[] = ['green', 'job',  $totalJobs,      'Active
 if (can('enquiries'))      $cards[] = ['orange','mail', $unreadEnq,      'Unread Enquiries'];
 if (can('applications'))   $cards[] = ['red',   'user', $newApps,        'New Applications'];
 ?>
+<?php
+// ---- Today's attendance (everyone) ----
+$attToday = date('Y-m-d');
+$attRec   = dbRow("SELECT * FROM attendance WHERE user_id = ? AND att_date = ?", 'is', [currentUserId(), $attToday]);
+$attState = !$attRec || !$attRec['check_in'] ? 'in' : ($attRec['check_out'] ? 'done' : ($attRec['lunch_out'] && !$attRec['lunch_in'] ? 'lunch' : 'working'));
+$attSched = attSchedule(currentUserId());
+$teamNow  = null;
+if (can('attendance.manage')) {
+    $teamNow = ['P' => 0, 'A' => 0, 'L' => 0, 'late' => 0];
+    $ymNow = substr($attToday, 0, 7); $holNow = attHolidays($ymNow . '-01', date('Y-m-t', strtotime($ymNow . '-01')));
+    foreach (attStaff(true) as $su) {
+        $dd = attMonth($su, $ymNow, attSchedule((int)$su['id']), $holNow)[$attToday];
+        if (in_array($dd['code'], ['P', 'H'], true)) $teamNow['P']++; elseif ($dd['code'] === 'A') $teamNow['A']++; elseif ($dd['code'] === 'L') $teamNow['L']++;
+        if ($dd['late'] > 0) $teamNow['late']++;
+    }
+}
+?>
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h2>My attendance today</h2><a href="pages/attendance.php" class="abtn abtn-outline abtn-sm">Details</a></div>
+    <div class="card-body">
+        <p class="td-muted" style="margin:0 0 12px;">Your timing <?php echo attHm($attSched['work_start']); ?>–<?php echo attHm($attSched['work_end']); ?> · Lunch <?php echo attHm($attSched['lunch_start']); ?>–<?php echo attHm($attSched['lunch_end']); ?>
+            <?php if ($attRec && $attRec['check_in']): ?> · In <b><?php echo attHm($attRec['check_in']); ?></b><?php echo $attRec['check_out'] ? ' · Out <b>' . attHm($attRec['check_out']) . '</b>' : ''; ?><?php endif; ?></p>
+        <div class="punch-row">
+            <?php if ($attState === 'in')      echo postButton('pages/attendance.php', ['action' => 'check_in'], 'Check in', 'abtn abtn-primary punch'); ?>
+            <?php if ($attState === 'working') echo postButton('pages/attendance.php', ['action' => 'lunch_out'], 'Start lunch', 'abtn abtn-blue punch') . postButton('pages/attendance.php', ['action' => 'check_out'], 'Check out', 'abtn abtn-primary punch'); ?>
+            <?php if ($attState === 'lunch')   echo postButton('pages/attendance.php', ['action' => 'lunch_in'], 'Back from lunch', 'abtn abtn-blue punch'); ?>
+            <?php if ($attState === 'done'):   ?><span class="abadge abadge-green">Day complete</span><?php endif; ?>
+        </div>
+        <?php if ($teamNow): ?><p class="td-muted" style="margin:16px 0 0;">Team today: <b><?php echo $teamNow['P']; ?></b> present · <b><?php echo $teamNow['A']; ?></b> absent · <b><?php echo $teamNow['L']; ?></b> on leave · <b><?php echo $teamNow['late']; ?></b> late — <a href="pages/attendance-manage.php" style="color:var(--a-blue);">Team attendance</a></p><?php endif; ?>
+    </div>
+</div>
+
 <div class="stat-cards">
 <?php foreach ($cards as [$colour, $icon, $num, $label]): ?>
     <div class="stat-card">

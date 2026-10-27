@@ -72,12 +72,15 @@ function requireLogin(): void {
 
 // ---------- Roles & permissions (edit this table to change who can do what) ----------
 //   owner     : everything
-//   manager   : creates/edits client projects (sees prices), handles enquiries, job applications and job openings
+//   manager   : creates/edits client projects (sees prices), handles enquiries, job applications and job openings, manages everyone's attendance
 //   developer : sees only the projects assigned to them, can post progress updates (no prices)
+//   attendance.self   = punch in/out, apply for leave (everyone)
+//   attendance.manage = see/edit everybody's attendance, working hours, holidays, approve leaves (owner has '*')
 const ROLE_PERMISSIONS = [
     'owner'     => ['*'],
-    'manager'   => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.price', 'projects.update', 'enquiries', 'applications', 'jobs'],
-    'developer' => ['projects.view_own', 'projects.update'],
+    'manager'   => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.price', 'projects.update', 'enquiries', 'applications', 'jobs',
+                    'attendance.self', 'attendance.manage'],
+    'developer' => ['projects.view_own', 'projects.update', 'attendance.self'],
 ];
 const ROLE_LABELS = ['owner' => 'Owner', 'manager' => 'Manager', 'developer' => 'Developer'];
 

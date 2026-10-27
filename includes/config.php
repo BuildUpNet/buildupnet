@@ -5,6 +5,10 @@
 // All other PHP files include this first.
 // ==========================================================
 
+// All dates and times (blog dates, attendance) use Indian time, whatever the hosting server's clock says
+define('APP_TIMEZONE', 'Asia/Kolkata');
+date_default_timezone_set(APP_TIMEZONE);
+
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/security.php';
 

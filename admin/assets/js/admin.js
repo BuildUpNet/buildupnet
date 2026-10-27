@@ -70,4 +70,12 @@ document.addEventListener('DOMContentLoaded', function () {
     syncSource();
   }
 
+  // Live clock on the attendance page (display only - the real time is always taken from the server)
+  var clock = document.getElementById('liveClock');
+  if (clock) {
+    setInterval(function () {
+      var d = new Date(); clock.textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }, 15000);
+  }
+
 });
