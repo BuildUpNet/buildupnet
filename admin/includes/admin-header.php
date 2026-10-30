@@ -128,4 +128,4 @@ if (!isset($pageTitle)) $pageTitle = 'Admin — Buildupnet';
             </div>
         </header>
 
-        <div class="admin-content">
+        <div class="admin-content" data-live="page" data-title="<?php echo htmlspecialchars($pageTitle ?? 'Dashboard'); ?>">

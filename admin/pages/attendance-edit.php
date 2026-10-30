@@ -20,7 +20,29 @@ $in = $rec ?? ['status' => 'present', 'check_in' => null, 'lunch_out' => null, '
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfCheck();
     $me = currentUserId();
-    if (($_POST['action'] ?? '') === 'clear') {                       // back to automatic (absent / off / holiday / leave worked out by the system)
+    $act = (string)($_POST['action'] ?? '');
+    if ($act === 'break_add' || $act === 'break_delete') {            // exits during the day ("marked out for urgent work")
+        $self = 'attendance-edit.php?user=' . $uid . '&date=' . $date;
+        if ($act === 'break_delete') {
+            $bid = (int)($_POST['break_id'] ?? 0);
+            $st = $conn->prepare("DELETE FROM attendance_breaks WHERE id = ? AND user_id = ? AND att_date = ?"); $st->bind_param('iis', $bid, $uid, $date); $st->execute();
+            flashMessage('success', 'Exit removed.');
+        } else {
+            $out = attTimeOrNull($_POST['out_at'] ?? ''); $inn = trim((string)($_POST['in_at'] ?? '')) === '' ? null : attTimeOrNull($_POST['in_at']);
+            $kind = ($_POST['kind'] ?? '') === 'office' ? 'office' : 'personal'; $reason = mb_substr(plainText((string)($_POST['reason'] ?? '')), 0, 255);
+            if (!$out) flashMessage('error', 'Enter a valid "out" time.');
+            elseif (trim((string)($_POST['in_at'] ?? '')) !== '' && !$inn) flashMessage('error', 'The "back" time is not valid.');
+            elseif ($inn && attMin($inn) <= attMin($out)) flashMessage('error', '"Back" time must be after "out" time.');
+            elseif (mb_strlen($reason) < 3) flashMessage('error', 'Write a short reason.');
+            else {
+                $st = $conn->prepare("INSERT INTO attendance_breaks (user_id, att_date, out_at, in_at, kind, reason, created_by_id) VALUES (?,?,?,?,?,?,?)");
+                $st->bind_param('isssssi', $uid, $date, $out, $inn, $kind, $reason, $me); $st->execute();
+                flashMessage('success', 'Exit added.');
+            }
+        }
+        header('Location: ' . $self); exit;
+    }
+    if ($act === 'clear') {                       // back to automatic (absent / off / holiday / leave worked out by the system)
         $st = $conn->prepare("DELETE FROM attendance WHERE user_id = ? AND att_date = ?"); $st->bind_param('is', $uid, $date); $st->execute();
         flashMessage('success', 'Record removed — the day is now worked out automatically.');
         header('Location: ' . $back); exit;
@@ -81,6 +103,33 @@ include __DIR__ . '/../includes/admin-header.php';
             <?php echo postButton('attendance-edit.php?user=' . $uid . '&date=' . $date, ['action' => 'clear', 'user' => $uid, 'date' => $date], 'Remove this record (back to automatic)', 'abtn abtn-danger abtn-sm', 'Remove the saved record for this day?'); ?>
         </div>
         <?php endif; ?>
+    </div>
+</div>
+
+<?php $brk = attBreakMap($uid, $date, $date)[$date] ?? ['rows' => [], 'personal' => 0, 'office' => 0, 'count' => 0, 'open' => false]; ?>
+<div class="card" style="margin-top:24px;">
+    <div class="card-header"><h2>Exits during the day (urgent work)</h2><span class="td-muted"><?php echo clean(attBreakText($brk['count'] ? $brk : null)); ?></span></div>
+    <div class="card-body">
+        <p class="hint" style="margin:0 0 12px;">Personal = time is deducted from worked hours. Office work = counted as worked. Staff mark these themselves from My Attendance; use this to add a forgotten one or fix a mistake.</p>
+        <?php if ($brk['rows']): ?>
+        <div style="overflow-x:auto;"><table class="admin-table table-cards"><thead><tr><th>Out</th><th>Back</th><th>Time</th><th>Type</th><th>Reason</th><th></th></tr></thead><tbody>
+        <?php foreach ($brk['rows'] as $b): ?>
+            <tr><td data-label="Out"><?php echo attHm($b['out_at']); ?></td><td data-label="Back"><?php echo $b['in_at'] ? attHm($b['in_at']) : '<span class="abadge abadge-orange">still out</span>'; ?></td>
+                <td data-label="Time"><?php echo $b['in_at'] ? attDur(attMin($b['in_at']) - attMin($b['out_at'])) : '—'; ?></td>
+                <td data-label="Type"><span class="abadge <?php echo $b['kind'] === 'office' ? 'abadge-blue' : 'abadge-grey'; ?>"><?php echo $b['kind'] === 'office' ? 'Office work' : 'Personal'; ?></span></td>
+                <td data-label="Reason" class="td-muted"><?php echo clean((string)$b['reason']); ?></td>
+                <td data-label=""><?php echo postButton('attendance-edit.php?user=' . $uid . '&date=' . $date, ['action' => 'break_delete', 'break_id' => $b['id'], 'user' => $uid, 'date' => $date], 'Delete', 'abtn abtn-danger abtn-sm', 'Delete this exit?'); ?></td></tr>
+        <?php endforeach; ?></tbody></table></div>
+        <?php endif; ?>
+        <form method="POST" style="margin-top:16px;"><?php echo csrfField(); ?><input type="hidden" name="action" value="break_add"><input type="hidden" name="user" value="<?php echo $uid; ?>"><input type="hidden" name="date" value="<?php echo clean($date); ?>">
+            <div class="form-grid">
+                <div class="form-group"><label>Out at</label><input type="time" name="out_at" required></div>
+                <div class="form-group"><label>Back at (empty = still out)</label><input type="time" name="in_at"></div>
+                <div class="form-group"><label>Type</label><select name="kind"><?php foreach (BREAK_KINDS as $k => $l): ?><option value="<?php echo $k; ?>"><?php echo clean($l); ?></option><?php endforeach; ?></select></div>
+                <div class="form-group"><label>Reason</label><input type="text" name="reason" maxlength="255" required placeholder="e.g. bank work"></div>
+            </div>
+            <div class="form-actions" style="margin-top:12px;"><button class="abtn abtn-outline" type="submit">Add exit</button></div>
+        </form>
     </div>
 </div>
 <?php include __DIR__ . '/../includes/admin-footer.php'; ?>

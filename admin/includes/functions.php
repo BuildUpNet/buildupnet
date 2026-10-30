@@ -9,8 +9,8 @@ function clean(string $val): string {
 }
 
 /** A small POST form that looks like a button (used for delete / toggle / move). Needs a CSRF token. */
-function postButton(string $action, array $fields, string $label, string $class = 'abtn abtn-outline abtn-sm', string $confirm = '', string $title = ''): string {
-    $h = '<form method="POST" action="' . htmlspecialchars($action, ENT_QUOTES) . '" style="display:inline;margin:0;">' . csrfField();
+function postButton(string $action, array $fields, string $label, string $class = 'abtn abtn-outline abtn-sm', string $confirm = '', string $title = '', bool $ajax = false): string {
+    $h = '<form method="POST" action="' . htmlspecialchars($action, ENT_QUOTES) . '" style="display:inline;margin:0;"' . ($ajax ? ' data-ajax' : '') . '>' . csrfField();
     foreach ($fields as $k => $v) {
         $h .= '<input type="hidden" name="' . htmlspecialchars($k, ENT_QUOTES) . '" value="' . htmlspecialchars((string)$v, ENT_QUOTES) . '">';
     }
@@ -34,6 +34,9 @@ function slugify(string $text): string {
     $text = preg_replace('/[\s-]+/', '-', $text);
     return trim($text, '-');
 }
+
+/** True for requests sent by the page's own JavaScript (fetch) — they get JSON / fragments instead of a full redirect. */
+function isAjax(): bool { return strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'; }
 
 function timeAgo(string $datetime): string {
     $now  = new DateTime();

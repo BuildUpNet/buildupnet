@@ -64,6 +64,7 @@ include __DIR__ . '/../includes/admin-header.php';
 <?php foreach ($errors as $err): ?><div class="flash flash-error" style="background:#FDECEA;border-left:4px solid #c0392b;color:#c0392b;"><?php echo clean($err); ?></div><?php endforeach; ?>
 <?php renderFlash(); ?>
 <?php if ($isMgr) echo attTabs('leaves'); ?>
+<div data-region="leaves">
 
 <?php if ($isMgr): ?>
 <div class="card" style="margin-bottom:24px;">
@@ -76,7 +77,7 @@ include __DIR__ . '/../includes/admin-header.php';
             <td data-label="Type"><?php echo clean(LEAVE_TYPES[$r['leave_type']] ?? $r['leave_type']); ?></td>
             <td data-label="Reason" class="td-muted" style="white-space:normal;"><?php echo clean((string)$r['reason']); ?></td>
             <td data-label="Decision"><?php if ($can): ?>
-                <form method="POST" class="decide"><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
+                <form method="POST" class="decide" data-ajax><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
                     <input type="text" name="decision_note" maxlength="255" placeholder="Note (optional)">
                     <div class="btn-group"><button class="abtn abtn-primary abtn-sm" name="action" value="approve" type="submit">Approve</button><button class="abtn abtn-danger abtn-sm" name="action" value="reject" type="submit">Reject</button></div>
                 </form><?php else: ?><span class="td-muted"><?php echo (int)$r['user_id'] === $me ? 'Your own request' : 'Owner decides'; ?></span><?php endif; ?></td></tr>
@@ -88,7 +89,7 @@ include __DIR__ . '/../includes/admin-header.php';
 <div class="card" style="margin-bottom:24px;">
     <div class="card-header"><h2>Apply for leave</h2></div>
     <div class="card-body">
-        <form method="POST"><?php echo csrfField(); ?><input type="hidden" name="action" value="apply">
+        <form method="POST" data-ajax><?php echo csrfField(); ?><input type="hidden" name="action" value="apply">
             <div class="form-grid">
                 <div class="form-group"><label>From *</label><input type="date" name="from_date" required min="<?php echo date('Y-m-d', strtotime('-30 days')); ?>" value="<?php echo clean((string)($_POST['from_date'] ?? $today)); ?>"></div>
                 <div class="form-group"><label>To *</label><input type="date" name="to_date" required min="<?php echo date('Y-m-d', strtotime('-30 days')); ?>" value="<?php echo clean((string)($_POST['to_date'] ?? $today)); ?>"></div>
@@ -110,7 +111,7 @@ include __DIR__ . '/../includes/admin-header.php';
             <td data-label="Type"><?php echo clean(LEAVE_TYPES[$r['leave_type']] ?? ''); ?></td>
             <td data-label="Status"><span class="abadge <?php echo $badge[$r['status']] ?? 'abadge-grey'; ?>"><?php echo clean(ucfirst($r['status'])); ?></span></td>
             <td data-label="Decision" class="td-muted"><?php echo $r['decided_by'] ? clean($r['decided_by']) . ($r['decision_note'] ? ': ' . clean($r['decision_note']) : '') : '—'; ?></td>
-            <td data-label=""><?php if (in_array($r['status'], ['pending', 'approved'], true) && $r['to_date'] >= $today) echo postButton('leaves.php', ['action' => 'cancel', 'id' => $r['id']], 'Cancel', 'abtn abtn-outline abtn-sm', 'Cancel this leave?'); ?></td></tr>
+            <td data-label=""><?php if (in_array($r['status'], ['pending', 'approved'], true) && $r['to_date'] >= $today) echo postButton('leaves.php', ['action' => 'cancel', 'id' => $r['id']], 'Cancel', 'abtn abtn-outline abtn-sm', 'Cancel this leave?', '', true); ?></td></tr>
     <?php endforeach; ?>
     </tbody></table></div>
 </div>
@@ -126,4 +127,5 @@ include __DIR__ . '/../includes/admin-header.php';
     </tbody></table></div>
 </div>
 <?php endif; ?>
+</div>
 <?php include __DIR__ . '/../includes/admin-footer.php'; ?>
