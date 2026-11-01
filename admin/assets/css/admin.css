@@ -495,3 +495,8 @@ button { cursor: pointer; font-family: inherit; }
 .form-grid > *, .form-group { min-width: 0; }
 .form-group input[type=time], .form-group input[type=date], .form-group input[type=number] { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
 @media (max-width: 768px) { .admin-topbar { min-width: 0; } .admin-page-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; } .admin-topbar-right { min-width: 0; flex: 0 1 auto; max-width: 52vw; } .admin-user { min-width: 0; max-width: 100%; } }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 14px; padding: 0; }
+.steps li { flex: 1 1 90px; text-align: center; padding: 9px 6px; border-radius: 8px; background: #eef1f4; color: var(--a-muted); font-size: .78rem; font-weight: 600; }
+.steps li.done { background: #E8F5EE; color: var(--a-success); } .steps li.now { background: var(--a-accent); color: #fff; }
+.pbar-wrap { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; } .pbar { flex: 1; height: 10px; background: #eef1f4; border-radius: 6px; overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--a-success); } .chk-line { display: flex; align-items: center; gap: 8px; min-height: 40px; font-weight: 600; }

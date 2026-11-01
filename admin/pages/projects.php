@@ -29,15 +29,15 @@ $sql = "SELECT p.*, u.name AS brought_by,
                (SELECT GROUP_CONCAT(du.name ORDER BY du.name SEPARATOR ', ') FROM project_developers pd JOIN admin_users du ON du.id = pd.user_id WHERE pd.project_id = p.id) AS developers
         FROM client_projects p LEFT JOIN admin_users u ON u.id = p.brought_by_id"
      . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
-     . " ORDER BY (p.status IN ('delivered','cancelled')), p.deadline IS NULL, p.deadline, p.id DESC LIMIT 300";
+     . " ORDER BY (p.status IN ('delivered','closed','cancelled')), p.deadline IS NULL, p.deadline, p.id DESC LIMIT 300";
 $projects = dbRows($sql, $types, $params);
 
 // ---- summary numbers (for the rows the user may see) ----
 $sum = ['active' => 0, 'leads' => 0, 'delivered' => 0, 'value' => 0.0, 'due' => 0.0];
 foreach ($projects as $p) {
-    if (in_array($p['status'], ['in_progress', 'review'], true)) $sum['active']++;
+    if (in_array($p['status'], ['confirmed', 'in_progress', 'review'], true)) $sum['active']++;
     if (in_array($p['status'], ['lead', 'quoted'], true))        $sum['leads']++;
-    if ($p['status'] === 'delivered')                             $sum['delivered']++;
+    if (in_array($p['status'], ['delivered', 'closed'], true))                           $sum['delivered']++;
     if ($p['status'] !== 'cancelled') { $sum['value'] += (float)$p['price']; $sum['due'] += max(0, (float)$p['price'] - (float)$p['advance_paid']); }
 }
 $showPrice = can('projects.price');
@@ -48,7 +48,7 @@ include __DIR__ . '/../includes/admin-header.php';
 
 <div class="stat-cards">
     <div class="stat-card"><div class="stat-card-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <div><div class="stat-card-num"><?php echo $sum['active']; ?></div><div class="stat-card-label">In progress / review</div></div></div>
+        <div><div class="stat-card-num"><?php echo $sum['active']; ?></div><div class="stat-card-label">Confirmed / working</div></div></div>
     <div class="stat-card"><div class="stat-card-icon orange"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
         <div><div class="stat-card-num"><?php echo $sum['leads']; ?></div><div class="stat-card-label">Leads / quoted</div></div></div>
     <div class="stat-card"><div class="stat-card-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -89,7 +89,7 @@ include __DIR__ . '/../includes/admin-header.php';
                     <?php if (can('projects.create')): ?><p><a href="project-edit.php" style="color:var(--a-blue);">Add the first project →</a></p><?php else: ?><p>Projects assigned to you will appear here.</p><?php endif; ?></div></td></tr>
             <?php endif; ?>
             <?php foreach ($projects as $p):
-                $overdue = $p['deadline'] && $p['deadline'] < date('Y-m-d') && !in_array($p['status'], ['delivered', 'cancelled'], true); ?>
+                $overdue = $p['deadline'] && $p['deadline'] < date('Y-m-d') && !in_array($p['status'], PROJECT_FINISHED, true); ?>
                 <tr>
                     <td class="td-title"><a href="project-view.php?id=<?php echo (int)$p['id']; ?>" style="color:inherit;"><?php echo clean($p['name']); ?></a>
                         <div class="td-muted"><?php echo clean($p['project_code']); ?><?php echo $p['priority'] === 'high' ? ' · <span style="color:var(--a-danger);">High priority</span>' : ''; ?></div></td>

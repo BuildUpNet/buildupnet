@@ -15,7 +15,7 @@ if ($id) {
 $isOwner  = currentRole() === 'owner';
 $errors   = [];
 $people   = staffList(['owner', 'manager']);
-$projects = dbRows("SELECT id, name, project_code, status FROM client_projects WHERE status NOT IN ('delivered','cancelled') ORDER BY name");
+$projects = dbRows("SELECT id, name, project_code, status FROM client_projects WHERE status NOT IN ('delivered','closed','cancelled') ORDER BY name");
 $selProjects = $id ? array_map('intval', array_column(hireProjects($id), 'id')) : [];
 
 $in = $hire ?? ['full_name' => '', 'email' => '', 'phone' => '', 'address' => '', 'date_of_birth' => '', 'qualification' => '', 'experience' => '', 'skills' => '',

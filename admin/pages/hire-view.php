@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'save_projects':
             if (!in_array($h['status'], HIRE_OPEN, true)) { $err = 'Projects of a joined person are managed in the project itself.'; break; }
-            $valid = array_map('intval', array_column(dbRows("SELECT id FROM client_projects WHERE status NOT IN ('delivered','cancelled')"), 'id'));
+            $valid = array_map('intval', array_column(dbRows("SELECT id FROM client_projects WHERE status NOT IN ('delivered','closed','cancelled')"), 'id'));
             $sel = array_values(array_intersect(array_map('intval', (array)($_POST['projects'] ?? [])), $valid));
             $conn->begin_transaction();
             $conn->query("DELETE FROM hire_projects WHERE hire_id = " . (int)$id);
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $docs     = hireDocs($id);
 $selected = hireProjects($id);
 $selIds   = array_map('intval', array_column($selected, 'id'));
-$allProj  = dbRows("SELECT id, name FROM client_projects WHERE status NOT IN ('delivered','cancelled') ORDER BY name");
+$allProj  = dbRows("SELECT id, name FROM client_projects WHERE status NOT IN ('delivered','closed','cancelled') ORDER BY name");
 $log      = dbRows("SELECT l.*, u.name FROM hire_log l LEFT JOIN admin_users u ON u.id = l.user_id WHERE l.hire_id = ? ORDER BY l.id DESC", 'i', [$id]);
 $missing  = hireMissingRequired($id);
 $tempShown = $_SESSION['temp_password'] ?? null; unset($_SESSION['temp_password']);

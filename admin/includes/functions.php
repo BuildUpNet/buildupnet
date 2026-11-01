@@ -125,19 +125,57 @@ function uploadFile(array $file, string $folder): ?string {
 // ==========================================================
 // Client projects helpers
 // ==========================================================
-const PROJECT_STATUSES = [          // key => [label, badge colour]
-    'lead'        => ['Lead',        'abadge-grey'],
-    'quoted'      => ['Quoted',      'abadge-orange'],
-    'in_progress' => ['In Progress', 'abadge-blue'],
-    'review'      => ['In Review',   'abadge-orange'],
-    'delivered'   => ['Delivered',   'abadge-green'],
-    'on_hold'     => ['On Hold',     'abadge-grey'],
-    'cancelled'   => ['Cancelled',   'abadge-red'],
+const PROJECT_STATUSES = [          // key => [label, badge colour]   Flow: lead -> quoted -> confirmed -> in_progress -> review -> delivered -> closed
+    'lead'        => ['Lead',            'abadge-grey'],
+    'quoted'      => ['Quotation sent',  'abadge-orange'],
+    'confirmed'   => ['Confirmed',       'abadge-blue'],
+    'in_progress' => ['In Progress',     'abadge-blue'],
+    'review'      => ['Final review',    'abadge-orange'],
+    'delivered'   => ['Delivered',       'abadge-green'],
+    'closed'      => ['Closed',          'abadge-green'],
+    'on_hold'     => ['On Hold',         'abadge-grey'],
+    'cancelled'   => ['Cancelled',       'abadge-red'],
 ];
+const PROJECT_STEPS      = ['quoted' => 'Quotation', 'confirmed' => 'Confirmed', 'in_progress' => 'Working', 'review' => 'Final review', 'delivered' => 'Delivered', 'closed' => 'Closed'];
+const PROJECT_NEEDS_TEAM = ['confirmed', 'in_progress', 'review', 'delivered', 'closed'];   // at least one developer must be assigned
+const PROJECT_FINISHED   = ['delivered', 'closed', 'cancelled'];
 const PROJECT_TYPES = ['Website', 'E-commerce', 'Web Application', 'Mobile App', 'UI / UX Design', 'SEO', 'Digital Marketing', 'Maintenance / AMC', 'Other'];
 const PROJECT_PRIORITIES = ['low' => 'Low', 'normal' => 'Normal', 'high' => 'High'];
 // A developer may only move a project between these statuses; owner/manager may use all of them.
 const DEVELOPER_STATUSES = ['in_progress', 'review', 'on_hold'];
+
+/** True once upgrade-project-flow.sql has been run (daily reports, progress %). The old pages keep working until then. */
+function projFlowReady(): bool {
+    static $ok = null;
+    if ($ok === null) { try { $ok = (bool)dbRow("SHOW COLUMNS FROM client_projects LIKE 'progress_pct'"); } catch (Throwable $e) { $ok = false; } }
+    return $ok;
+}
+
+/**
+ * Moves a project to a new status and writes the history line. Returns null on success or an error text.
+ * Repeats the old status in the WHERE so two people clicking together cannot both win. Caller may wrap it in a transaction.
+ */
+function projectMove(array $p, string $to, string $note = ''): ?string {
+    global $conn;
+    if (!isset(PROJECT_STATUSES[$to])) return 'Unknown status.';
+    if ($to === $p['status']) return null;
+    if (in_array($to, PROJECT_NEEDS_TEAM, true) && !dbRow("SELECT 1 AS x FROM project_developers WHERE project_id = ? LIMIT 1", 'i', [(int)$p['id']])) return 'Assign at least one developer first.';
+    $d = "'" . date('Y-m-d') . "'";                       // today in the app timezone (the database clock may differ)
+    $sets = ['status = ?', 'updated_at = NOW()'];
+    $sets[] = in_array($to, ['delivered', 'closed'], true) ? "delivered_on = COALESCE(delivered_on, $d)" : 'delivered_on = NULL';
+    if (projFlowReady()) {
+        $sets[] = $to === 'closed' ? "closed_on = $d" : 'closed_on = NULL';
+        if (in_array($to, ['delivered', 'closed'], true)) $sets[] = 'progress_pct = 100';
+        if (in_array($to, ['confirmed', 'in_progress'], true)) $sets[] = "confirmed_on = COALESCE(confirmed_on, $d)";
+    }
+    $st = $conn->prepare("UPDATE client_projects SET " . implode(', ', $sets) . " WHERE id = ? AND status = ?");
+    $id = (int)$p['id']; $st->bind_param('sis', $to, $id, $p['status']); $st->execute();
+    if ($st->affected_rows !== 1) return 'Somebody else changed this project just now. Reload and check.';
+    $uid = currentUserId(); $text = $note !== '' ? $note : 'Status changed.';
+    $lg = $conn->prepare("INSERT INTO project_updates (project_id, user_id, note, old_status, new_status) VALUES (?,?,?,?,?)");
+    $lg->bind_param('iisss', $id, $uid, $text, $p['status'], $to); $lg->execute();
+    return null;
+}
 
 function statusBadge(string $status): string {
     [$label, $class] = PROJECT_STATUSES[$status] ?? [$status, 'abadge-grey'];

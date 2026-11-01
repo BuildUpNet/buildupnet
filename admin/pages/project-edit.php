@@ -66,8 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $broughtBy = (int)($_POST['brought_by_id'] ?? 0);
     if (!in_array($broughtBy, array_map('intval', array_column($allStaff, 'id')), true)) $broughtBy = null;
     $devIds = array_values(array_intersect(array_map('intval', (array)($_POST['developers'] ?? [])), array_map('intval', array_column($developers, 'id'))));
-    if ($status === 'delivered' && !$delivered) $delivered = date('Y-m-d');
-    if ($status !== 'delivered') $delivered = null;
+    if (in_array($status, ['delivered', 'closed'], true) && !$delivered) $delivered = date('Y-m-d');
+    if (!in_array($status, ['delivered', 'closed'], true)) $delivered = null;
+    if (in_array($status, PROJECT_NEEDS_TEAM, true) && !$devIds) $errors[] = 'Choose at least one developer before the project is confirmed or started.';
 
     $in = array_merge($in, compact('name', 'status', 'source') + ['project_type' => $type, 'priority' => $prio, 'source_type' => $source, 'description' => $desc,
         'notes' => $notes, 'hosting_notes' => $hosting, 'price' => $price, 'advance_paid' => $advance, 'start_date' => $start, 'deadline' => $deadline,
@@ -103,6 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $lg = $conn->prepare("INSERT INTO project_updates (project_id, user_id, note, new_status) VALUES (?,?,?,?)");
                 $msg = 'Project created.'; $lg->bind_param('iiss', $id, $uid, $msg, $status); $lg->execute();
             }
+            if (projFlowReady()) {            // keep the flow dates and progress in step with the chosen status
+                $d = "'" . date('Y-m-d') . "'";
+                $conn->query("UPDATE client_projects SET closed_on = IF(status = 'closed', COALESCE(closed_on, $d), NULL),
+                    confirmed_on = IF(status IN ('confirmed','in_progress','review','delivered','closed'), COALESCE(confirmed_on, $d), confirmed_on),
+                    progress_pct = IF(status IN ('delivered','closed'), 100, progress_pct) WHERE id = " . (int)$id);
+            }
             $conn->query("DELETE FROM project_developers WHERE project_id = " . (int)$id);
             if ($devIds) {
                 $pd = $conn->prepare("INSERT INTO project_developers (project_id, user_id) VALUES (?, ?)");
@@ -137,7 +144,7 @@ include __DIR__ . '/../includes/admin-header.php';
         <div class="form-group"><label>Tech stack</label><input type="text" name="tech_stack" maxlength="500" list="stackList" value="<?php echo $v('tech_stack'); ?>" placeholder="PHP, MySQL, Bootstrap, WordPress…">
             <datalist id="stackList"><?php foreach (['PHP', 'Laravel', 'MySQL', 'WordPress', 'Shopify', 'WooCommerce', 'JavaScript', 'React', 'Node.js', 'Kotlin', 'Flutter', 'Bootstrap', 'Tailwind CSS', 'Figma'] as $t): ?><option value="<?php echo $t; ?>"><?php endforeach; ?></datalist>
             <span class="hint">Separate with commas.</span></div>
-        <div class="form-group"><label>Status</label>
+        <div class="form-group"><label>Status <span class="hint">(quotation → confirmed → in progress → final review → delivered → closed)</span></label>
             <select name="status"><?php foreach (PROJECT_STATUSES as $k => $s): ?><option value="<?php echo $k; ?>" <?php echo ($in['status'] ?? '') === $k ? 'selected' : ''; ?>><?php echo clean($s[0]); ?></option><?php endforeach; ?></select></div>
         <div class="form-group"><label>Priority</label>
             <select name="priority"><?php foreach (PROJECT_PRIORITIES as $k => $l): ?><option value="<?php echo $k; ?>" <?php echo ($in['priority'] ?? '') === $k ? 'selected' : ''; ?>><?php echo clean($l); ?></option><?php endforeach; ?></select></div>

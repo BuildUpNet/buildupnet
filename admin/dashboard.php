@@ -27,12 +27,12 @@ if (can('projects.view_all') || can('projects.view_own')) {
     if ($isDev) {
         $myProjects = dbRows("SELECT p.id, p.project_code, p.name, p.project_type, p.status, p.deadline FROM client_projects p
                               JOIN project_developers pd ON pd.project_id = p.id AND pd.user_id = ?
-                              ORDER BY FIELD(p.status,'in_progress','review','planning','lead','on_hold','delivered','cancelled'), p.deadline IS NULL, p.deadline LIMIT 8", 'i', [currentUserId()]);
+                              ORDER BY FIELD(p.status,'in_progress','confirmed','review','planning','quoted','lead','on_hold','delivered','closed','cancelled'), p.deadline IS NULL, p.deadline LIMIT 8", 'i', [currentUserId()]);
     } else {
         $myProjects = dbRows("SELECT id, project_code, name, project_type, status, deadline FROM client_projects ORDER BY updated_at DESC LIMIT 8");
     }
-    $activeProjects = $isDev ? count(array_filter($myProjects, fn($r) => !in_array($r['status'], ['delivered', 'cancelled'], true)))
-                             : (int)dbRow("SELECT COUNT(*) c FROM client_projects WHERE status NOT IN ('delivered','cancelled')")['c'];
+    $activeProjects = $isDev ? count(array_filter($myProjects, fn($r) => !in_array($r['status'], PROJECT_FINISHED, true)))
+                             : (int)dbRow("SELECT COUNT(*) c FROM client_projects WHERE status NOT IN ('delivered','closed','cancelled')")['c'];
 }
 
 include __DIR__ . '/includes/admin-header.php';
@@ -55,6 +55,16 @@ if (can('jobs'))           $cards[] = ['green', 'job',  $totalJobs,      'Active
 if (can('enquiries'))      $cards[] = ['orange','mail', $unreadEnq,      'Unread Enquiries'];
 if (can('applications'))   $cards[] = ['red',   'user', $newApps,        'New Applications'];
 if (can('hiring.approve'))  $cards[] = ['orange','user', hirePendingCount(), 'Hires waiting for you'];
+
+// Daily project reports still missing today (developers: their own projects; owner/manager: how many reports are pending)
+$dueMine = [];
+if (projFlowReady() && (can('projects.view_all') || can('projects.view_own'))) {
+    $tdy = date('Y-m-d');
+    $sqlDue = "FROM project_developers pd JOIN client_projects p ON p.id = pd.project_id AND p.status = 'in_progress'
+               LEFT JOIN project_updates r ON r.project_id = pd.project_id AND r.user_id = pd.user_id AND r.kind = 'daily' AND r.report_date = ? WHERE r.id IS NULL";
+    if ($isDev) $dueMine = dbRows("SELECT p.id, p.name " . $sqlDue . " AND pd.user_id = ? ORDER BY p.name", 'si', [$tdy, currentUserId()]);
+    else $cards[] = ['orange', 'doc', (int)(dbRow("SELECT COUNT(*) AS c " . $sqlDue, 's', [$tdy])['c'] ?? 0), 'Daily reports pending today'];
+}
 ?>
 <?php
 // ---- Today's attendance (everyone) ----
@@ -97,6 +107,10 @@ $punch = fn($act, $label, $cls) => postButton('pages/attendance.php', ['action' 
 </div>
 </div>
 
+<?php if ($dueMine): ?>
+<div class="temp-pass" style="margin-bottom:20px;"><strong>Daily report pending for <?php echo count($dueMine); ?> project<?php echo count($dueMine) > 1 ? 's' : ''; ?>:</strong>
+    <span><?php foreach ($dueMine as $i => $dm): ?><?php echo $i ? ', ' : ''; ?><a href="pages/project-view.php?id=<?php echo (int)$dm['id']; ?>" style="color:var(--a-blue);font-weight:600;"><?php echo clean($dm['name']); ?></a><?php endforeach; ?></span></div>
+<?php endif; ?>
 <div class="stat-cards">
 <?php foreach ($cards as [$colour, $icon, $num, $label]): ?>
     <div class="stat-card">
