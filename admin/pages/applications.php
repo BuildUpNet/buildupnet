@@ -59,6 +59,7 @@ include __DIR__ . '/../includes/admin-header.php';
         <div class="msg-detail" style="margin-top:8px;"><?php echo nl2br(clean($viewing['message'])); ?></div>
         <?php endif; ?>
         <div style="margin-top:16px;">
+            <?php if (can('hiring.manage')): ?><a href="hire-edit.php?application_id=<?php echo (int)$viewing['id']; ?>" class="abtn abtn-primary">Hire this candidate</a><?php endif; ?>
             <a href="mailto:<?php echo clean($viewing['email']); ?>" class="abtn abtn-primary">Reply via Email</a>
             <?php echo postButton('applications.php', ['action'=>'delete','id'=>$viewing['id']], 'Delete', 'abtn abtn-danger', 'Delete this application?'); ?>
         </div>

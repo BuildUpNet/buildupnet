@@ -57,6 +57,15 @@ if (!isset($pageTitle)) $pageTitle = 'Admin — Buildupnet';
             <?php endif; ?>
             <?php endif; ?>
 
+            <?php if (can('hiring.manage')): ?>
+            <span class="sidebar-section-label">Hiring</span>
+            <a href="<?php echo adminUrl('pages/hires.php'); ?>" class="<?php echo in_array(currentAdminPage(), ['hires.php', 'hire-view.php']) ? 'active' : ''; ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Hiring <?php $hp = hirePendingCount(); if ($hp > 0) echo '<span class="sidebar-count">' . $hp . '</span>'; ?></a>
+            <a href="<?php echo adminUrl('pages/hire-edit.php'); ?>" class="<?php echo isActivePage('hire-edit.php'); ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> New Hire</a>
+            <?php if (can('hiring.templates')): ?>
+            <a href="<?php echo adminUrl('pages/letter-templates.php'); ?>" class="<?php echo isActivePage('letter-templates.php'); ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Letter Templates</a>
+            <?php endif; ?>
+            <?php endif; ?>
+
             <?php if (can('content') || can('jobs')): ?>
             <span class="sidebar-section-label">Website</span>
             <?php if (can('content')): ?>

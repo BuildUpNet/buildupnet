@@ -76,10 +76,11 @@ function requireLogin(): void {
 //   developer : sees only the projects assigned to them, can post progress updates (no prices)
 //   attendance.self   = punch in/out, apply for leave (everyone)
 //   attendance.manage = see/edit everybody's attendance, working hours, holidays, approve leaves (owner has '*')
+//   hiring.manage     = fill hire forms, track documents, issue letters (manager + owner). hiring.approve / hiring.templates = owner only (via '*')
 const ROLE_PERMISSIONS = [
     'owner'     => ['*'],
     'manager'   => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.price', 'projects.update', 'enquiries', 'applications', 'jobs',
-                    'attendance.self', 'attendance.manage'],
+                    'attendance.self', 'attendance.manage', 'hiring.manage'],
     'developer' => ['projects.view_own', 'projects.update', 'attendance.self'],
 ];
 const ROLE_LABELS = ['owner' => 'Owner', 'manager' => 'Manager', 'developer' => 'Developer'];

@@ -54,6 +54,7 @@ if ($showBlog)             $cards[] = ['green', 'doc',  $publishedPosts, 'Publis
 if (can('jobs'))           $cards[] = ['green', 'job',  $totalJobs,      'Active Job Openings'];
 if (can('enquiries'))      $cards[] = ['orange','mail', $unreadEnq,      'Unread Enquiries'];
 if (can('applications'))   $cards[] = ['red',   'user', $newApps,        'New Applications'];
+if (can('hiring.approve'))  $cards[] = ['orange','user', hirePendingCount(), 'Hires waiting for you'];
 ?>
 <?php
 // ---- Today's attendance (everyone) ----
