@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$f['joining_date']) $errors[] = 'Choose the joining date.';
     elseif ($f['joining_date'] > date('Y-m-d', strtotime('+1 year'))) $errors[] = 'Joining date is too far away.';
     if ($f['date_of_birth'] && ($f['date_of_birth'] > date('Y-m-d', strtotime('-15 years')) || $f['date_of_birth'] < date('Y-m-d', strtotime('-70 years')))) $errors[] = 'Date of birth does not look right.';
-    if ($f['offer_valid_until'] && $f['joining_date'] && $f['offer_valid_until'] > $f['joining_date']) $errors[] = 'The offer should be valid until a date on or before the joining date.';
+    if ($f['offer_valid_until'] && $f['offer_valid_until'] < date('Y-m-d')) $errors[] = '"Offer valid until" cannot be a date in the past (leave it empty for 7 days after the offer is issued).';
     foreach (['work_start', 'work_end', 'lunch_start', 'lunch_end'] as $k) if (!$f[$k]) { $errors[] = 'Fill all four work timing fields.'; break; }
     if ($f['work_start'] && $f['work_end'] && $f['lunch_start'] && $f['lunch_end'] && !($f['work_start'] < $f['lunch_start'] && $f['lunch_start'] < $f['lunch_end'] && $f['lunch_end'] < $f['work_end'])) $errors[] = 'Timing order must be: start < lunch start < lunch end < end.';
     if ($f['reports_to_id'] && !in_array($f['reports_to_id'], array_map('intval', array_column($people, 'id')), true)) $f['reports_to_id'] = null;
