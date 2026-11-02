@@ -140,6 +140,7 @@ function hireLetterAllowed(array $h, string $type): bool {
 
 /** Builds the letter as a PDF string on the BuildUpNet letterhead. Wording comes from the letter_templates table. */
 function hireLetterPdf(array $h, string $type): string {
+    require_once __DIR__ . '/pdf.php';
     $tpl = dbRow("SELECT * FROM letter_templates WHERE letter_type = ?", 's', [$type]);
     if (!$tpl) throw new RuntimeException('Letter template missing - run upgrade-hiring.sql.');
     $v = hireFilled($h);
@@ -246,4 +247,60 @@ function hireUsernameError(string $username): ?string {
     if (!preg_match('/^[a-z0-9._-]{3,60}$/', $username)) return 'Username: 3–60 characters, only letters, numbers, dot, dash, underscore.';
     if (dbRow("SELECT id FROM admin_users WHERE username = ?", 's', [$username])) return 'This username is already taken.';
     return null;
+}
+
+
+// ---------------------------------------------------------------- e-mail to the new person
+
+/**
+ * E-mails the candidate: offer letter (PDF attached) + portal address, username and temporary password.
+ * Returns true when the mail server accepted it. The password is only in this mail and on the owner's screen, never in the history log.
+ */
+function hireEmailLogin(array $h, string $username, string $tempPassword, string $pdf): bool {
+    $to = trim((string)$h['email']);
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $to)) return false;
+    $one = fn(string $v) => trim(preg_replace('/[\r\n]+/', ' ', $v));
+    $name = $one((string)$h['full_name']);
+    $url  = 'https://www.buildupnet.com/admin';
+    $text = "Dear {$name},\r\n\r\n"
+          . "Welcome to BuildUpNet. Please find your offer letter attached to this e-mail.\r\n\r\n"
+          . "Your team portal login:\r\n"
+          . "  Web address       : {$url}\r\n"
+          . "  Username          : {$username}\r\n"
+          . "  Temporary password: {$tempPassword}\r\n\r\n"
+          . "You must choose your own password the first time you log in. Do not share these details with anyone, and delete this e-mail once you have changed the password.\r\n\r\n"
+          . "Please sign the acceptance part of the offer letter and send a copy back to us.\r\n\r\n"
+          . "Regards,\r\nBuildUpNet\r\n" . SITE_EMAIL . "\r\n" . SITE_PHONE . "\r\n" . SITE_URL . "\r\n";
+    $b = 'bun_' . bin2hex(random_bytes(12));
+    $file = 'Offer-Letter-' . trim(preg_replace('/[^A-Za-z0-9]+/', '-', $name), '-') . '.pdf';
+    $headers = 'From: ' . SITE_NAME . ' <no-reply@buildupnet.com>' . "\r\n"
+             . 'Reply-To: ' . SITE_EMAIL . "\r\n"
+             . 'MIME-Version: 1.0' . "\r\n"
+             . 'Content-Type: multipart/mixed; boundary="' . $b . '"' . "\r\n";
+    $body = "--{$b}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n" . quoted_printable_encode($text) . "\r\n"
+          . "--{$b}\r\nContent-Type: application/pdf; name=\"{$file}\"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"{$file}\"\r\n\r\n"
+          . chunk_split(base64_encode($pdf)) . "--{$b}--\r\n";
+    $subject = '=?UTF-8?B?' . base64_encode('Your offer letter and login details - BuildUpNet') . '?=';
+    return @mail($to, $subject, $body, $headers);
+}
+
+/**
+ * Sends the offer letter + login mail and, when the offer was still only "approved", marks it as issued (e-mailing it is issuing it).
+ * Returns a short sentence for the screen.
+ */
+function hireSendLoginMail(array $h, string $username, string $tempPassword): string {
+    global $conn;
+    $fresh = dbRow("SELECT * FROM hire_requests WHERE id = ?", 'i', [(int)$h['id']]);
+    if (!$fresh) return 'E-mail not sent.';
+    if (!filter_var(trim((string)$fresh['email']), FILTER_VALIDATE_EMAIL)) return 'No valid e-mail address on this hire, so nothing was e-mailed — send the details yourself.';
+    if (!hireLetterAllowed($fresh, 'offer')) return 'The offer letter is not available yet, so nothing was e-mailed.';
+    try {
+        $issuing = $fresh['status'] === 'approved';
+        if (!$fresh['offer_date']) $fresh['offer_date'] = date('Y-m-d');
+        $ok = hireEmailLogin($fresh, $username, $tempPassword, hireLetterPdf($fresh, 'offer'));
+    } catch (Throwable $e) { error_log('hire mail failed: ' . $e->getMessage()); $ok = false; }
+    if (!$ok) { hireLog((int)$h['id'], 'email_failed', 'Could not e-mail the offer letter and login details to ' . $fresh['email'] . '.'); return 'The e-mail could NOT be sent — copy the details from this page and send them yourself.'; }
+    if ($issuing && !hireMove($fresh, 'offer_issued', ['offer_date' => ['s', $fresh['offer_date']]])) hireLog((int)$h['id'], 'offer_issued', 'Offer letter issued by e-mail.');
+    hireLog((int)$h['id'], 'email_sent', 'Offer letter and login details e-mailed to ' . $fresh['email'] . '.');
+    return 'Offer letter and login details were e-mailed to ' . $fresh['email'] . '.';
 }

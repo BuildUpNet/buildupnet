@@ -114,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->commit();
                 $_SESSION['temp_password'] = ['name' => $h['full_name'], 'password' => $temp, 'username' => $username];
                 $okMsg = 'Login created. Copy the temporary password shown on this page.';
+                if (!empty($_POST['send_mail'])) $okMsg .= ' ' . hireSendLoginMail($h, $username, $temp);
             } catch (Throwable $e) { $conn->rollback(); error_log('hire login failed: ' . $e->getMessage()); $err = 'Could not create the login. Nothing was changed.'; }
             break;
 
@@ -141,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->commit();
                 if ($temp !== null) $_SESSION['temp_password'] = ['name' => $h['full_name'], 'password' => $temp, 'username' => $username];
                 $okMsg = $temp !== null ? 'Joined. Login created — copy the temporary password shown on this page.' : 'Joined.';
+                if ($temp !== null && !empty($_POST['send_mail'])) $okMsg .= ' ' . hireSendLoginMail($h, $username, $temp);
             } catch (Throwable $e) {
                 $conn->rollback();
                 error_log('hire join failed: ' . $e->getMessage());
@@ -201,6 +203,8 @@ include __DIR__ . '/../includes/admin-header.php';
         <p style="margin-top:0;">Create the team login now, with the same role (<b><?php echo clean(HIRE_ROLES[$h['role']] ?? $h['role']); ?></b>), work timing and projects as in this form. A temporary password is shown once; the person must change it at first login. You can disable the login in Users &amp; Roles at any time.</p>
         <form method="POST" action="hire-view.php?id=<?php echo $id; ?>" data-ajax><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $id; ?>"><input type="hidden" name="action" value="create_login">
             <div class="form-grid"><div class="form-group"><label>Login username</label><input type="text" name="username" required maxlength="60" autocapitalize="none" value="<?php echo clean($suggest); ?>"></div></div>
+            <?php if (filter_var(trim((string)$h['email']), FILTER_VALIDATE_EMAIL)): ?><label class="chk-line"><input type="checkbox" name="send_mail" value="1" checked> E-mail the offer letter (PDF) + username + password to <?php echo clean($h['email']); ?></label>
+            <?php else: ?><p class="hint">No valid e-mail on this hire, so nothing can be e-mailed. Edit the hire to add one.</p><?php endif; ?>
             <div class="form-actions" style="margin-top:12px;"><button class="abtn abtn-primary" type="submit" data-confirm="Create the login for <?php echo clean($h['full_name']); ?>?">Create login</button></div>
         </form>
     </div>
@@ -258,6 +262,8 @@ include __DIR__ . '/../includes/admin-header.php';
                     <?php if (!$h['user_id']): ?><div class="form-group"><label>Login username</label><input type="text" name="username" required maxlength="60" autocapitalize="none" value="<?php echo clean($suggest); ?>"></div>
                     <?php else: ?><div class="form-group"><label>Login</label><div class="td-muted" style="padding-top:10px;">Already created — it will be used.</div></div><?php endif; ?>
                 </div>
+                <?php if (!$h['user_id']): ?><?php if (filter_var(trim((string)$h['email']), FILTER_VALIDATE_EMAIL)): ?><label class="chk-line"><input type="checkbox" name="send_mail" value="1" checked> E-mail the offer letter (PDF) + username + password to <?php echo clean($h['email']); ?></label>
+            <?php else: ?><p class="hint">No valid e-mail on this hire, so nothing can be e-mailed. Edit the hire to add one.</p><?php endif; ?><?php endif; ?>
                 <div class="btn-group" style="margin-top:14px;"><button class="abtn abtn-primary" type="submit" <?php echo $missing ? 'disabled' : ''; ?> data-confirm="Create the login and mark <?php echo clean($h['full_name']); ?> as joined?">Mark as joined &amp; create login</button>
                     <?php if (currentRole() === 'owner') echo $aj('cancel', 'Cancel hire', 'abtn abtn-danger abtn-sm', 'Cancel this hire?'); ?></div>
             </form>
