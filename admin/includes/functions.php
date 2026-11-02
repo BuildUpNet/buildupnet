@@ -144,6 +144,20 @@ const PROJECT_PRIORITIES = ['low' => 'Low', 'normal' => 'Normal', 'high' => 'Hig
 // A developer may only move a project between these statuses; owner/manager may use all of them.
 const DEVELOPER_STATUSES = ['in_progress', 'review', 'on_hold'];
 
+/**
+ * A running project needs at least one manager (a manager or the owner) AND at least one developer; more of each is fine.
+ * Returns null when the team is complete, otherwise a message.
+ */
+function projectTeamProblem(int $projectId): ?string {
+    $r = dbRow("SELECT COALESCE(SUM(u.role IN ('manager','owner')), 0) AS m, COALESCE(SUM(u.role = 'developer'), 0) AS d
+                FROM project_developers pd JOIN admin_users u ON u.id = pd.user_id AND u.is_active = 1 WHERE pd.project_id = ?", 'i', [$projectId]);
+    $m = (int)($r['m'] ?? 0); $d = (int)($r['d'] ?? 0);
+    if ($m < 1 && $d < 1) return 'Assign at least one manager and one developer first.';
+    if ($m < 1) return 'Assign at least one manager first.';
+    if ($d < 1) return 'Assign at least one developer first.';
+    return null;
+}
+
 /** True once upgrade-project-flow.sql has been run (daily reports, progress %). The old pages keep working until then. */
 function projFlowReady(): bool {
     static $ok = null;
@@ -159,7 +173,7 @@ function projectMove(array $p, string $to, string $note = ''): ?string {
     global $conn;
     if (!isset(PROJECT_STATUSES[$to])) return 'Unknown status.';
     if ($to === $p['status']) return null;
-    if (in_array($to, PROJECT_NEEDS_TEAM, true) && !dbRow("SELECT 1 AS x FROM project_developers WHERE project_id = ? LIMIT 1", 'i', [(int)$p['id']])) return 'Assign at least one developer first.';
+    if (in_array($to, PROJECT_NEEDS_TEAM, true) && ($why = projectTeamProblem((int)$p['id'])) !== null) return $why;
     $d = "'" . date('Y-m-d') . "'";                       // today in the app timezone (the database clock may differ)
     $sets = ['status = ?', 'updated_at = NOW()'];
     $sets[] = in_array($to, ['delivered', 'closed'], true) ? "delivered_on = COALESCE(delivered_on, $d)" : 'delivered_on = NULL';

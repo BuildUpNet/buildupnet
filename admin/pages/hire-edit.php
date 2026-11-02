@@ -202,7 +202,7 @@ include __DIR__ . '/../includes/admin-header.php';
         <?php if (!$projects): ?><p class="hint">No running projects yet. You can also assign projects after the person has joined.</p><?php endif; ?>
         <div class="check-list"><?php foreach ($projects as $p): ?>
             <label><input type="checkbox" name="projects[]" value="<?php echo (int)$p['id']; ?>" <?php echo in_array((int)$p['id'], $selProjects, true) ? 'checked' : ''; ?>> <?php echo clean($p['name']); ?></label><?php endforeach; ?></div>
-        <p class="hint" style="margin-top:8px;">The person is added as developer on all ticked projects when they join. A project can have many developers.</p>
+        <p class="hint" style="margin-top:8px;">The person is added to the team of all ticked projects. One person can be on many projects; every project needs at least one manager and one developer.</p>
     </div>
 </div>
 

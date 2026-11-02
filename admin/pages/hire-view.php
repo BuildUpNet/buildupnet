@@ -99,40 +99,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             hireLog($id, 'projects', count($sel) . ' project(s) selected.'); $okMsg = 'Projects saved.';
             break;
 
+        case 'create_login':      // the person appears in Users & Roles with the same role as in the hire form
+            if (!in_array($h['status'], ['approved', 'offer_issued', 'accepted', 'joined'], true)) { $err = 'The owner must approve the hire before a login can be created.'; break; }
+            if ($h['user_id']) { $err = 'This person already has a login.'; break; }
+            $username = strtolower(trim((string)($_POST['username'] ?? '')));
+            if (($err = hireUsernameError($username)) !== null) break;
+            if (!isset(HIRE_ROLES[$h['role']])) { $err = 'The role of this hire is not valid.'; break; }
+            $conn->begin_transaction();
+            try {
+                [$uid, $temp] = hireMakeLogin($h, $username);
+                $up = $conn->prepare("UPDATE hire_requests SET user_id = ? WHERE id = ? AND user_id IS NULL"); $up->bind_param('ii', $uid, $id); $up->execute();
+                if ($up->affected_rows !== 1) throw new RuntimeException('login already linked');
+                hireLog($id, 'login_created', 'Login "' . $username . '" created with role ' . (HIRE_ROLES[$h['role']] ?? $h['role']) . '.');
+                $conn->commit();
+                $_SESSION['temp_password'] = ['name' => $h['full_name'], 'password' => $temp, 'username' => $username];
+                $okMsg = 'Login created. Copy the temporary password shown on this page.';
+            } catch (Throwable $e) { $conn->rollback(); error_log('hire login failed: ' . $e->getMessage()); $err = 'Could not create the login. Nothing was changed.'; }
+            break;
+
         case 'join':
             if ($h['status'] !== 'accepted') { $err = 'The candidate must accept the offer first.'; break; }
             $username = strtolower(trim((string)($_POST['username'] ?? '')));
             $joined = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($_POST['joined_on'] ?? '')) && strtotime($_POST['joined_on']) ? $_POST['joined_on'] : null;
             $missing = hireMissingRequired($id);
-            if (!preg_match('/^[a-z0-9._-]{3,60}$/', $username)) $err = 'Username: 3–60 characters, only letters, numbers, dot, dash, underscore.';
-            elseif (!$joined || $joined > date('Y-m-d', strtotime('+7 days')) || $joined < date('Y-m-d', strtotime('-90 days'))) $err = 'Choose a valid joining date (up to 90 days back, 7 days ahead).';
+            if (!$h['user_id'] && ($err = hireUsernameError($username)) !== null) break;      // an existing login needs no username
+            if (!$joined || $joined > date('Y-m-d', strtotime('+7 days')) || $joined < date('Y-m-d', strtotime('-90 days'))) $err = 'Choose a valid joining date (up to 90 days back, 7 days ahead).';
             elseif ($missing) $err = 'These required documents are still missing: ' . implode(', ', $missing) . '.';
             elseif (!isset(HIRE_ROLES[$h['role']])) $err = 'The role of this hire is not valid.';
-            elseif (dbRow("SELECT id FROM admin_users WHERE username = ?", 's', [$username])) $err = 'This username is already taken.';
             if ($err) break;
 
-            $temp = generateTempPassword(); $hash = password_hash($temp, PASSWORD_DEFAULT);
             $conn->begin_transaction();
             try {
                 $n = (int)(dbRow("SELECT COALESCE(MAX(CAST(SUBSTRING(employee_code, 9) AS UNSIGNED)), 0) + 1 AS n FROM hire_requests WHERE employee_code LIKE 'BUN-EMP-%' FOR UPDATE")['n'] ?? 1);
                 $code = sprintf('BUN-EMP-%03d', $n); $jref = sprintf('BUN/JL/%s/%04d', date('Y'), $id);
-                $st = $conn->prepare("INSERT INTO admin_users (name, username, password, role, email, phone, must_change_password) VALUES (?,?,?,?,?,?,1)");
-                $st->bind_param('ssssss', $h['full_name'], $username, $hash, $h['role'], $h['email'], $h['phone']); $st->execute();
-                $uid = (int)$conn->insert_id;
-                $ws = $conn->prepare("INSERT INTO work_schedules (user_id, work_start, work_end, lunch_start, lunch_end, weekly_off, updated_by_id) VALUES (?,?,?,?,?,?,?)
-                                      ON DUPLICATE KEY UPDATE work_start = VALUES(work_start), work_end = VALUES(work_end), lunch_start = VALUES(lunch_start), lunch_end = VALUES(lunch_end), weekly_off = VALUES(weekly_off), updated_by_id = VALUES(updated_by_id)");
-                $ws->bind_param('isssssi', $uid, $h['work_start'], $h['work_end'], $h['lunch_start'], $h['lunch_end'], $h['weekly_off'], $me); $ws->execute();
-                $np = 0;
-                if ($h['role'] === 'developer') {                                  // every selected project gets this developer (a project can have many)
-                    $pd = $conn->prepare("INSERT IGNORE INTO project_developers (project_id, user_id) SELECT project_id, ? FROM hire_projects WHERE hire_id = ?");
-                    $pd->bind_param('ii', $uid, $id); $pd->execute(); $np = $pd->affected_rows;
-                }
+                $temp = null;
+                if ($h['user_id']) { $uid = (int)$h['user_id']; $np = hireApplySetup($h, $uid); }
+                else { [$uid, $temp] = hireMakeLogin($h, $username); $np = (int)(dbRow("SELECT COUNT(*) AS c FROM project_developers WHERE user_id = ?", 'i', [$uid])['c'] ?? 0); }
                 $err = hireMove($h, 'joined', ['joined_on' => ['s', $joined], 'employee_code' => ['s', $code], 'joining_ref' => ['s', $jref], 'user_id' => ['i', $uid]]);
                 if ($err) throw new RuntimeException($err);
-                hireLog($id, 'joined', 'Joined on ' . fmtDate($joined) . ' as ' . $code . '. Login "' . $username . '" created' . ($np ? ', added to ' . $np . ' project(s)' : '') . '.');
+                hireLog($id, 'joined', 'Joined on ' . fmtDate($joined) . ' as ' . $code . '. ' . ($temp !== null ? 'Login "' . $username . '" created' : 'Existing login used') . ($np ? ', on ' . $np . ' project(s)' : '') . '.');
                 $conn->commit();
-                $_SESSION['temp_password'] = ['name' => $h['full_name'], 'password' => $temp, 'username' => $username];
-                $okMsg = 'Joined. Login created — copy the temporary password shown on this page.';
+                if ($temp !== null) $_SESSION['temp_password'] = ['name' => $h['full_name'], 'password' => $temp, 'username' => $username];
+                $okMsg = $temp !== null ? 'Joined. Login created — copy the temporary password shown on this page.' : 'Joined.';
             } catch (Throwable $e) {
                 $conn->rollback();
                 error_log('hire join failed: ' . $e->getMessage());
@@ -186,6 +194,21 @@ include __DIR__ . '/../includes/admin-header.php';
     </div>
 </div>
 
+<?php if (in_array($h['status'], ['approved', 'offer_issued', 'accepted'], true) && !$h['user_id']): ?>
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><h2>Add to Users now</h2></div>
+    <div class="card-body">
+        <p style="margin-top:0;">Create the team login now, with the same role (<b><?php echo clean(HIRE_ROLES[$h['role']] ?? $h['role']); ?></b>), work timing and projects as in this form. A temporary password is shown once; the person must change it at first login. You can disable the login in Users &amp; Roles at any time.</p>
+        <form method="POST" action="hire-view.php?id=<?php echo $id; ?>" data-ajax><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $id; ?>"><input type="hidden" name="action" value="create_login">
+            <div class="form-grid"><div class="form-group"><label>Login username</label><input type="text" name="username" required maxlength="60" autocapitalize="none" value="<?php echo clean($suggest); ?>"></div></div>
+            <div class="form-actions" style="margin-top:12px;"><button class="abtn abtn-primary" type="submit" data-confirm="Create the login for <?php echo clean($h['full_name']); ?>?">Create login</button></div>
+        </form>
+    </div>
+</div>
+<?php elseif ($h['user_id'] && $h['status'] !== 'joined'): ?>
+<div class="flash" style="background:#E8F5EE;border-left:4px solid #2D7A52;color:#1e5a3b;margin-bottom:20px;">Login already created — <?php echo can('users') ? '<a href="users.php" style="color:inherit;font-weight:600;">see in Users &amp; Roles</a>' : 'the owner can see it in Users &amp; Roles'; ?>.</div>
+<?php endif; ?>
+
 <?php // ---------- what happens next ---------- ?>
 <div class="card" style="margin-bottom:20px;">
     <div class="card-header"><h2>Next step</h2></div>
@@ -232,7 +255,8 @@ include __DIR__ . '/../includes/admin-header.php';
             <form method="POST" action="hire-view.php?id=<?php echo $id; ?>" data-ajax><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $id; ?>"><input type="hidden" name="action" value="join">
                 <div class="form-grid">
                     <div class="form-group"><label>Date of joining</label><input type="date" name="joined_on" required value="<?php echo clean((string)($h['joining_date'] ?: $today)); ?>"></div>
-                    <div class="form-group"><label>Login username</label><input type="text" name="username" required maxlength="60" autocapitalize="none" value="<?php echo clean($suggest); ?>"></div>
+                    <?php if (!$h['user_id']): ?><div class="form-group"><label>Login username</label><input type="text" name="username" required maxlength="60" autocapitalize="none" value="<?php echo clean($suggest); ?>"></div>
+                    <?php else: ?><div class="form-group"><label>Login</label><div class="td-muted" style="padding-top:10px;">Already created — it will be used.</div></div><?php endif; ?>
                 </div>
                 <div class="btn-group" style="margin-top:14px;"><button class="abtn abtn-primary" type="submit" <?php echo $missing ? 'disabled' : ''; ?> data-confirm="Create the login and mark <?php echo clean($h['full_name']); ?> as joined?">Mark as joined &amp; create login</button>
                     <?php if (currentRole() === 'owner') echo $aj('cancel', 'Cancel hire', 'abtn abtn-danger abtn-sm', 'Cancel this hire?'); ?></div>

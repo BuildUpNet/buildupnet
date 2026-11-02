@@ -60,7 +60,7 @@ if (can('hiring.approve'))  $cards[] = ['orange','user', hirePendingCount(), 'Hi
 $dueMine = [];
 if (projFlowReady() && (can('projects.view_all') || can('projects.view_own'))) {
     $tdy = date('Y-m-d');
-    $sqlDue = "FROM project_developers pd JOIN client_projects p ON p.id = pd.project_id AND p.status = 'in_progress'
+    $sqlDue = "FROM project_developers pd JOIN admin_users au ON au.id = pd.user_id AND au.role = 'developer' AND au.is_active = 1 JOIN client_projects p ON p.id = pd.project_id AND p.status = 'in_progress'
                LEFT JOIN project_updates r ON r.project_id = pd.project_id AND r.user_id = pd.user_id AND r.kind = 'daily' AND r.report_date = ? WHERE r.id IS NULL";
     if ($isDev) $dueMine = dbRows("SELECT p.id, p.name " . $sqlDue . " AND pd.user_id = ? ORDER BY p.name", 'si', [$tdy, currentUserId()]);
     else $cards[] = ['orange', 'doc', (int)(dbRow("SELECT COUNT(*) AS c " . $sqlDue, 's', [$tdy])['c'] ?? 0), 'Daily reports pending today'];

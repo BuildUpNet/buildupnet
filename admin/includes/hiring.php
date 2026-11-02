@@ -213,3 +213,37 @@ function hireLetterPdf(array $h, string $type): string {
     $p->text($x, $yl, 'Signature: ________________________'); $p->text($x, $yl, 'Date: ________________', 'R', $w);
     return $p->output();
 }
+
+
+// ---------------------------------------------------------------- login for a hire
+
+/**
+ * Creates the team login for a hire with the SAME role as in the hire form, its work timing, and links every selected project.
+ * Call inside a transaction. Returns [user id, temporary password]. The hire's user_id is set by the caller's UPDATE.
+ */
+function hireMakeLogin(array $h, string $username): array {
+    global $conn;
+    $temp = generateTempPassword(); $hash = password_hash($temp, PASSWORD_DEFAULT);
+    $st = $conn->prepare("INSERT INTO admin_users (name, username, password, role, email, phone, must_change_password) VALUES (?,?,?,?,?,?,1)");
+    $st->bind_param('ssssss', $h['full_name'], $username, $hash, $h['role'], $h['email'], $h['phone']); $st->execute();
+    $uid = (int)$conn->insert_id;
+    hireApplySetup($h, $uid);
+    return [$uid, $temp];
+}
+
+/** Work timing from the form + all selected projects (a person can be on many projects). Returns how many projects were linked. */
+function hireApplySetup(array $h, int $uid): int {
+    global $conn; $me = currentUserId();
+    $ws = $conn->prepare("INSERT INTO work_schedules (user_id, work_start, work_end, lunch_start, lunch_end, weekly_off, updated_by_id) VALUES (?,?,?,?,?,?,?)
+                          ON DUPLICATE KEY UPDATE work_start = VALUES(work_start), work_end = VALUES(work_end), lunch_start = VALUES(lunch_start), lunch_end = VALUES(lunch_end), weekly_off = VALUES(weekly_off), updated_by_id = VALUES(updated_by_id)");
+    $ws->bind_param('isssssi', $uid, $h['work_start'], $h['work_end'], $h['lunch_start'], $h['lunch_end'], $h['weekly_off'], $me); $ws->execute();
+    $pd = $conn->prepare("INSERT IGNORE INTO project_developers (project_id, user_id) SELECT project_id, ? FROM hire_projects WHERE hire_id = ?");
+    $hid = (int)$h['id']; $pd->bind_param('ii', $uid, $hid); $pd->execute();
+    return max(0, (int)$pd->affected_rows);
+}
+
+function hireUsernameError(string $username): ?string {
+    if (!preg_match('/^[a-z0-9._-]{3,60}$/', $username)) return 'Username: 3–60 characters, only letters, numbers, dot, dash, underscore.';
+    if (dbRow("SELECT id FROM admin_users WHERE username = ?", 's', [$username])) return 'This username is already taken.';
+    return null;
+}

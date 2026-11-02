@@ -26,6 +26,7 @@ function projDate(string $k): ?string { $v = trim((string)($_POST[$k] ?? '')); r
 
 $isMgr = can('projects.edit'); $me = currentUserId(); $today = date('Y-m-d'); $flow = projFlowReady();
 $validDevs = array_map('intval', array_column(staffList(['developer']), 'id'));
+$validMgrs = array_map('intval', array_column(staffList(['manager', 'owner']), 'id'));   // a project's manager: manager or owner
 
 // ---- every change is a POST: CSRF + role + current-status checks ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -52,14 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$isMgr) { $err = 'Only the owner or a manager can confirm a project.'; break; }
             if (!in_array($st0, ['lead', 'quoted'], true)) { $err = 'Only a project that is still at quotation stage can be confirmed.'; break; }
             $devIds = array_values(array_intersect(array_map('intval', (array)($_POST['developers'] ?? [])), $validDevs));
+            $mgrIds = array_values(array_intersect(array_map('intval', (array)($_POST['managers'] ?? [])), $validMgrs)); $teamAll = array_values(array_unique(array_merge($mgrIds, $devIds)));
             $start = projDate('start_date'); $dead = projDate('deadline'); $now = !empty($_POST['start_now']);
+            if (!$mgrIds) { $err = 'Choose at least one manager (a manager or the owner).'; break; }
             if (!$devIds) { $err = 'Choose at least one developer.'; break; }
             if ($start && $dead && $dead < $start) { $err = 'Deadline cannot be before the start date.'; break; }
             $conn->begin_transaction();
             $conn->query("DELETE FROM project_developers WHERE project_id = " . (int)$id);
-            $pd = $conn->prepare("INSERT INTO project_developers (project_id, user_id) VALUES (?, ?)"); foreach ($devIds as $d) { $pd->bind_param('ii', $id, $d); $pd->execute(); }
+            $pd = $conn->prepare("INSERT INTO project_developers (project_id, user_id) VALUES (?, ?)"); foreach ($teamAll as $d) { $pd->bind_param('ii', $id, $d); $pd->execute(); }
             $up = $conn->prepare("UPDATE client_projects SET start_date = COALESCE(?, start_date, ?), deadline = COALESCE(?, deadline) WHERE id = ?"); $up->bind_param('sssi', $start, $today, $dead, $id); $up->execute();
-            $names = implode(', ', array_column(dbRows("SELECT name FROM admin_users WHERE id IN (" . implode(',', $devIds) . ") ORDER BY name"), 'name'));
+            $names = implode(', ', array_column(dbRows("SELECT name FROM admin_users WHERE id IN (" . implode(',', $teamAll) . ") ORDER BY name"), 'name'));
             $err = projectMove($project, $now ? 'in_progress' : 'confirmed', 'Quotation confirmed by the client. Team: ' . $names . '.' . ($note !== '' ? "\n" . $note : ''));
             $err ? $conn->rollback() : $conn->commit(); $okMsg = $now ? 'Confirmed. Work has started — developers can send daily reports.' : 'Confirmed. A developer can now press "Start work".';
             break;
@@ -68,11 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$isMgr) { $err = 'Only the owner or a manager can change the team.'; break; }
             if (in_array($st0, PROJECT_FINISHED, true)) { $err = 'This project is finished.'; break; }
             $devIds = array_values(array_intersect(array_map('intval', (array)($_POST['developers'] ?? [])), $validDevs));
-            if (!$devIds && in_array($st0, PROJECT_NEEDS_TEAM, true)) { $err = 'A running project needs at least one developer.'; break; }
+            $mgrIds = array_values(array_intersect(array_map('intval', (array)($_POST['managers'] ?? [])), $validMgrs)); $teamAll = array_values(array_unique(array_merge($mgrIds, $devIds)));
+            if ((!$devIds || !$mgrIds) && in_array($st0, PROJECT_NEEDS_TEAM, true)) { $err = 'A running project needs at least one manager and at least one developer.'; break; }
             $conn->begin_transaction();
             $conn->query("DELETE FROM project_developers WHERE project_id = " . (int)$id);
-            if ($devIds) { $pd = $conn->prepare("INSERT INTO project_developers (project_id, user_id) VALUES (?, ?)"); foreach ($devIds as $d) { $pd->bind_param('ii', $id, $d); $pd->execute(); } }
-            $names = $devIds ? implode(', ', array_column(dbRows("SELECT name FROM admin_users WHERE id IN (" . implode(',', $devIds) . ") ORDER BY name"), 'name')) : 'nobody';
+            if ($teamAll) { $pd = $conn->prepare("INSERT INTO project_developers (project_id, user_id) VALUES (?, ?)"); foreach ($teamAll as $d) { $pd->bind_param('ii', $id, $d); $pd->execute(); } }
+            $names = $teamAll ? implode(', ', array_column(dbRows("SELECT name FROM admin_users WHERE id IN (" . implode(',', $teamAll) . ") ORDER BY name"), 'name')) : 'nobody';
             $lg = $conn->prepare("INSERT INTO project_updates (project_id, user_id, note) VALUES (?,?,?)"); $t = 'Team updated: ' . $names . '.'; $lg->bind_param('iis', $id, $me, $t); $lg->execute();
             $conn->commit(); $okMsg = 'Team saved.';
             break;
@@ -144,15 +148,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     projDone(!$err, $err ?? $okMsg, $id);
 }
 
-$devRows    = dbRows("SELECT u.id, u.name FROM project_developers pd JOIN admin_users u ON u.id = pd.user_id WHERE pd.project_id = ? ORDER BY u.name", 'i', [$id]);
+$teamRows   = dbRows("SELECT u.id, u.name, u.role FROM project_developers pd JOIN admin_users u ON u.id = pd.user_id WHERE pd.project_id = ? ORDER BY u.name", 'i', [$id]);
+$mgrRows    = array_values(array_filter($teamRows, fn($r) => in_array($r['role'], ['manager', 'owner'], true)));
+$devRows    = array_values(array_filter($teamRows, fn($r) => $r['role'] === 'developer'));      // developers owe the daily reports
 $developers = dbRows("SELECT u.name FROM project_developers pd JOIN admin_users u ON u.id = pd.user_id WHERE pd.project_id = ? ORDER BY u.name", 'i', [$id]);
 $updates    = dbRows("SELECT pu.*, u.name AS who FROM project_updates pu LEFT JOIN admin_users u ON u.id = pu.user_id WHERE pu.project_id = ? ORDER BY pu.created_at DESC, pu.id DESC LIMIT 200", 'i', [$id]);
 $todayRep   = [];                                   // user_id => today's daily report
 if ($flow) foreach (dbRows("SELECT * FROM project_updates WHERE project_id = ? AND kind = 'daily' AND report_date = ?", 'is', [$id, $today]) as $r) $todayRep[(int)$r['user_id']] = $r;
 $myRep      = $todayRep[$me] ?? null;
-$inTeam     = in_array($me, array_map('intval', array_column($devRows, 'id')), true);
-$teamIds    = array_map('intval', array_column($devRows, 'id'));
+$inTeam     = in_array($me, array_map('intval', array_column($teamRows, 'id')), true);
+$teamIds    = array_map('intval', array_column($teamRows, 'id'));
 $allDevs    = staffList(['developer']);
+$allMgrs    = staffList(['manager', 'owner']);
 $showPrice  = can('projects.price');
 $isDev      = !can('projects.view_all');          // developers see a trimmed view: no client contact, no money, no internal notes
 $statusOpts = can('projects.edit') ? array_keys(PROJECT_STATUSES) : array_values(array_unique(array_merge([$project['status']], DEVELOPER_STATUSES)));
@@ -163,6 +170,7 @@ $aj = fn($act, $label, $cls, $confirm = '') => postButton('project-view.php?id='
 $stepKeys = array_keys(PROJECT_STEPS); $curStep = array_search($project['status'] === 'lead' ? 'quoted' : $project['status'], $stepKeys, true);
 $pct = (int)($project['progress_pct'] ?? 0);
 $teamChecks = function() use ($allDevs, $teamIds) { foreach ($allDevs as $d): ?><label><input type="checkbox" name="developers[]" value="<?php echo (int)$d['id']; ?>" <?php echo in_array((int)$d['id'], $teamIds, true) ? 'checked' : ''; ?>> <?php echo clean($d['name']); ?></label><?php endforeach; };
+$mgrChecks = function() use ($allMgrs, $teamIds) { foreach ($allMgrs as $d): ?><label><input type="checkbox" name="managers[]" value="<?php echo (int)$d['id']; ?>" <?php echo in_array((int)$d['id'], $teamIds, true) ? 'checked' : ''; ?>> <?php echo clean($d['name']); ?> <span class="td-muted">(<?php echo clean(ROLE_LABELS[$d['role']] ?? ''); ?>)</span></label><?php endforeach; };
 
 $pageTitle = $project['name'];
 include __DIR__ . '/../includes/admin-header.php';
@@ -194,9 +202,11 @@ include __DIR__ . '/../includes/admin-header.php';
     <?php switch ($project['status']):
         case 'lead': case 'quoted': ?>
             <?php if ($isMgr): ?>
-            <p><b>Client said yes?</b> Confirm the project, choose the developers (one or more) and the dates.</p>
+            <p><b>Client said yes?</b> Confirm the project, choose the manager(s) and developer(s) — at least one of each — and the dates.</p>
             <form method="POST" action="project-view.php?id=<?php echo $id; ?>" data-ajax><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $id; ?>"><input type="hidden" name="action" value="confirm">
-                <label style="font-weight:600;">Developers *</label>
+                <label style="font-weight:600;">Managers * <span class="hint">(at least one — manager or owner)</span></label>
+                <div class="check-list" style="margin:6px 0 14px;"><?php $mgrChecks(); ?></div>
+                <label style="font-weight:600;">Developers * <span class="hint">(at least one — more is fine)</span></label>
                 <?php if (!$allDevs): ?><p class="hint">No developer accounts yet. Add them in Users &amp; Roles or hire one from Hiring.</p><?php endif; ?>
                 <div class="check-list" style="margin:6px 0 14px;"><?php $teamChecks(); ?></div>
                 <div class="form-grid">
@@ -256,7 +266,8 @@ include __DIR__ . '/../includes/admin-header.php';
                     <div><dt>Tech stack</dt><dd><?php
                         $stack = array_filter(array_map('trim', explode(',', (string)$project['tech_stack'])));
                         echo $stack ? implode(' ', array_map(fn($t) => '<span class="abadge abadge-blue">' . clean($t) . '</span>', $stack)) : '—'; ?></dd></div>
-                    <div><dt>Developers</dt><dd><?php echo $developers ? clean(implode(', ', array_column($developers, 'name'))) : '—'; ?></dd></div>
+                    <div><dt>Managers</dt><dd><?php echo $mgrRows ? clean(implode(', ', array_column($mgrRows, 'name'))) : '—'; ?></dd></div>
+                    <div><dt>Developers</dt><dd><?php echo $devRows ? clean(implode(', ', array_column($devRows, 'name'))) : '—'; ?></dd></div>
                     <div><dt>Start date</dt><dd><?php echo fmtDate($project['start_date']); ?></dd></div>
                     <div><dt>Deadline</dt><dd style="<?php echo $overdue ? 'color:var(--a-danger);font-weight:600;' : ''; ?>"><?php echo fmtDate($project['deadline']); ?><?php echo $overdue ? ' (overdue)' : ''; ?></dd></div>
                     <?php if ($project['delivered_on']): ?><div><dt>Delivered on</dt><dd><?php echo fmtDate($project['delivered_on']); ?></dd></div><?php endif; ?>
@@ -325,15 +336,20 @@ include __DIR__ . '/../includes/admin-header.php';
 
     <div>
         <div class="card" style="margin-bottom:20px;">
-            <div class="card-header"><h2>Team (<?php echo count($devRows); ?>)</h2></div>
+            <div class="card-header"><h2>Team (<?php echo count($teamRows); ?>)</h2></div>
             <div class="card-body">
                 <?php if ($isMgr && !in_array($project['status'], PROJECT_FINISHED, true)): ?>
                 <form method="POST" action="project-view.php?id=<?php echo $id; ?>" data-ajax><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $id; ?>"><input type="hidden" name="action" value="assign_team">
+                    <h4 style="margin:0 0 6px;">Managers <span class="hint">(at least 1)</span></h4>
+                    <div class="check-list" style="grid-template-columns:1fr;"><?php $mgrChecks(); ?></div>
+                    <h4 style="margin:14px 0 6px;">Developers <span class="hint">(at least 1)</span></h4>
                     <div class="check-list" style="grid-template-columns:1fr;"><?php $teamChecks(); ?></div>
-                    <p class="hint" style="margin:8px 0;">One project can have many developers.</p>
+                    <p class="hint" style="margin:8px 0;">A project can have many managers and many developers, and one person can be on many projects.</p>
                     <button class="abtn abtn-outline abtn-sm" type="submit">Save team</button>
                 </form>
-                <?php else: ?><?php echo $devRows ? clean(implode(', ', array_column($devRows, 'name'))) : '<span class="td-muted">Nobody assigned.</span>'; ?><?php endif; ?>
+                <?php else: ?>
+                    <p style="margin:0 0 6px;"><b>Managers:</b> <?php echo $mgrRows ? clean(implode(', ', array_column($mgrRows, 'name'))) : '<span class="td-muted">none</span>'; ?></p>
+                    <p style="margin:0;"><b>Developers:</b> <?php echo $devRows ? clean(implode(', ', array_column($devRows, 'name'))) : '<span class="td-muted">none</span>'; ?></p><?php endif; ?>
                 <?php if ($flow && in_array($project['status'], ['in_progress', 'review'], true) && $devRows): ?>
                 <h4 style="margin:16px 0 6px;">Today's reports</h4>
                 <ul style="list-style:none;margin:0;padding:0;"><?php foreach ($devRows as $d): $r = $todayRep[(int)$d['id']] ?? null; ?>

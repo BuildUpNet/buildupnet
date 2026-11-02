@@ -14,6 +14,7 @@ if ($id) {
 }
 
 $developers = staffList(['developer']);
+$managers   = staffList(['manager', 'owner']);        // a project's manager can be a manager or the owner
 $owners     = staffList(['owner']);
 $allStaff   = staffList();
 $errors     = [];
@@ -66,15 +67,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $broughtBy = (int)($_POST['brought_by_id'] ?? 0);
     if (!in_array($broughtBy, array_map('intval', array_column($allStaff, 'id')), true)) $broughtBy = null;
     $devIds = array_values(array_intersect(array_map('intval', (array)($_POST['developers'] ?? [])), array_map('intval', array_column($developers, 'id'))));
+    $mgrIds = array_values(array_intersect(array_map('intval', (array)($_POST['managers'] ?? [])), array_map('intval', array_column($managers, 'id'))));
     if (in_array($status, ['delivered', 'closed'], true) && !$delivered) $delivered = date('Y-m-d');
     if (!in_array($status, ['delivered', 'closed'], true)) $delivered = null;
-    if (in_array($status, PROJECT_NEEDS_TEAM, true) && !$devIds) $errors[] = 'Choose at least one developer before the project is confirmed or started.';
+    if (in_array($status, PROJECT_NEEDS_TEAM, true)) {
+        if (!$mgrIds) $errors[] = 'Choose at least one manager for this project.';
+        if (!$devIds) $errors[] = 'Choose at least one developer for this project.';
+    }
+    $teamIds = array_values(array_unique(array_merge($mgrIds, $devIds)));
 
     $in = array_merge($in, compact('name', 'status', 'source') + ['project_type' => $type, 'priority' => $prio, 'source_type' => $source, 'description' => $desc,
         'notes' => $notes, 'hosting_notes' => $hosting, 'price' => $price, 'advance_paid' => $advance, 'start_date' => $start, 'deadline' => $deadline,
         'live_url' => $live, 'tech_stack' => $stack, 'client_name' => $clientName, 'client_company' => $company ?? '', 'client_phone' => $phone ?? '',
         'client_email' => $email ?? '', 'brought_by_id' => $broughtBy]);
-    $selectedDevs = $devIds;
+    $selectedDevs = $teamIds;
 
     if (!$errors) {
         $conn->begin_transaction();
@@ -111,9 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     progress_pct = IF(status IN ('delivered','closed'), 100, progress_pct) WHERE id = " . (int)$id);
             }
             $conn->query("DELETE FROM project_developers WHERE project_id = " . (int)$id);
-            if ($devIds) {
+            if ($teamIds) {
                 $pd = $conn->prepare("INSERT INTO project_developers (project_id, user_id) VALUES (?, ?)");
-                foreach ($devIds as $d) { $pd->bind_param('ii', $id, $d); $pd->execute(); }
+                foreach ($teamIds as $d) { $pd->bind_param('ii', $id, $d); $pd->execute(); }
             }
             $conn->commit();
             flashMessage('success', 'Project saved.');
@@ -179,8 +185,12 @@ include __DIR__ . '/../includes/admin-header.php';
         <div class="form-group"><label>Brought by (who got this project)</label>
             <select name="brought_by_id"><option value="0">— nobody / walk-in —</option>
                 <?php foreach ($allStaff as $u): ?><option value="<?php echo (int)$u['id']; ?>" <?php echo (int)($in['brought_by_id'] ?? 0) === (int)$u['id'] ? 'selected' : ''; ?>><?php echo clean($u['name']); ?> (<?php echo clean(ROLE_LABELS[$u['role']] ?? $u['role']); ?>)</option><?php endforeach; ?></select></div>
-        <div class="form-group"><label>Developers working on it</label>
-            <?php if (!$developers): ?><span class="hint">No developer accounts yet. The owner can add them in Users &amp; Roles.</span><?php endif; ?>
+        <div class="form-group"><label>Managers * <span class="hint">(at least one — manager or owner)</span></label>
+            <div class="check-list"><?php foreach ($managers as $d): ?>
+                <label><input type="checkbox" name="managers[]" value="<?php echo (int)$d['id']; ?>" <?php echo in_array((int)$d['id'], $selectedDevs, true) ? 'checked' : ''; ?>> <?php echo clean($d['name']); ?> <span class="td-muted">(<?php echo clean(ROLE_LABELS[$d['role']] ?? ''); ?>)</span></label>
+            <?php endforeach; ?></div></div>
+        <div class="form-group"><label>Developers * <span class="hint">(at least one — more is fine)</span></label>
+            <?php if (!$developers): ?><span class="hint">No developer accounts yet. Hire one from Hiring or add in Users &amp; Roles.</span><?php endif; ?>
             <div class="check-list"><?php foreach ($developers as $d): ?>
                 <label><input type="checkbox" name="developers[]" value="<?php echo (int)$d['id']; ?>" <?php echo in_array((int)$d['id'], $selectedDevs, true) ? 'checked' : ''; ?>> <?php echo clean($d['name']); ?></label>
             <?php endforeach; ?></div></div>
