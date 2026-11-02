@@ -2,6 +2,6 @@
     </div><!-- /.admin-main -->
 </div><!-- /.admin-wrap -->
 
-<script src="<?php echo adminUrl('assets/js/admin.js'); ?>"></script>
+<script src="<?php echo adminUrl('assets/js/admin.js') . '?v=' . (int)@filemtime(__DIR__ . '/../assets/js/admin.js'); ?>"></script>
 </body>
 </html>

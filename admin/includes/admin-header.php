@@ -14,8 +14,8 @@ if (!isset($pageTitle)) $pageTitle = 'Admin — Buildupnet';
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo adminUrl('assets/css/admin.css'); ?>">
-    <script src="<?php echo adminUrl('assets/js/sidebar-init.js'); ?>"></script>
+    <link rel="stylesheet" href="<?php echo adminUrl('assets/css/admin.css') . '?v=' . (int)@filemtime(__DIR__ . '/../assets/css/admin.css'); ?>">
+    <script src="<?php echo adminUrl('assets/js/sidebar-init.js') . '?v=' . (int)@filemtime(__DIR__ . '/../assets/js/sidebar-init.js'); ?>"></script>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -49,7 +49,7 @@ if (!isset($pageTitle)) $pageTitle = 'Admin — Buildupnet';
         <div class="sidebar-logo">
             <span class="sidebar-logo-mark">B</span>
             <span class="sb-text">Buildup<strong>net</strong></span>
-            <button type="button" class="sb-close" id="sbClose" aria-label="Close menu"><svg class="ni"><use href="#i-x"/></svg></button>
+            <button type="button" class="sb-close" id="sbClose" aria-label="Close menu"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-x"/></svg></button>
         </div>
 
         <nav class="sidebar-nav">
@@ -57,7 +57,7 @@ if (!isset($pageTitle)) $pageTitle = 'Admin — Buildupnet';
 (function () {      // own scope, so the menu's helper variables never clash with a page's variables
 $nav = function (string $href, string $icon, string $label, bool $active, int $count = 0): void {
     echo '<a href="' . adminUrl($href) . '" class="' . ($active ? 'active' : '') . '" title="' . htmlspecialchars($label) . '"' . ($active ? ' aria-current="page"' : '') . '>'
-       . '<svg class="ni" aria-hidden="true"><use href="#i-' . $icon . '"/></svg><span class="sb-text">' . $label . '</span>'
+       . '<svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-' . $icon . '"/></svg><span class="sb-text">' . $label . '</span>'
        . ($count > 0 ? '<span class="sidebar-count">' . $count . '</span>' : '') . '</a>';
 };
 $pg = currentAdminPage();
@@ -111,9 +111,9 @@ if (can('users')) {
                 <span class="sb-avatar"><?php echo clean(mb_strtoupper(mb_substr((string)($_SESSION['admin_name'] ?? 'A'), 0, 1))); ?></span>
                 <span class="sb-text sb-user-text"><b><?php echo clean($_SESSION['admin_name'] ?? 'Admin'); ?></b><small><?php echo clean(ROLE_LABELS[currentRole()] ?? ''); ?></small></span>
             </div>
-            <a href="<?php echo SITE_URL; ?>/" target="_blank" rel="noopener" class="sidebar-view-site" title="View Website"><svg class="ni"><use href="#i-globe"/></svg><span class="sb-text">View Website</span></a>
-            <a href="<?php echo adminUrl('pages/password.php'); ?>" class="sidebar-view-site <?php echo currentAdminPage() === 'password.php' ? 'on' : ''; ?>" title="Change Password"><svg class="ni"><use href="#i-key"/></svg><span class="sb-text">Change Password</span></a>
-            <a href="<?php echo adminUrl('logout.php'); ?>" class="sidebar-logout" title="Logout"><svg class="ni"><use href="#i-logout"/></svg><span class="sb-text">Logout</span></a>
+            <a href="<?php echo SITE_URL; ?>/" target="_blank" rel="noopener" class="sidebar-view-site" title="View Website"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-globe"/></svg><span class="sb-text">View Website</span></a>
+            <a href="<?php echo adminUrl('pages/password.php'); ?>" class="sidebar-view-site <?php echo currentAdminPage() === 'password.php' ? 'on' : ''; ?>" title="Change Password"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-key"/></svg><span class="sb-text">Change Password</span></a>
+            <a href="<?php echo adminUrl('logout.php'); ?>" class="sidebar-logout" title="Logout"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-logout"/></svg><span class="sb-text">Logout</span></a>
         </div>
     </aside>
     <div class="sb-overlay" id="sbOverlay"></div>
@@ -121,7 +121,7 @@ if (can('users')) {
     <!-- ===== Main Content Area ===== -->
     <div class="admin-main">
         <header class="admin-topbar">
-            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Show or hide menu" aria-controls="sidebar" title="Menu"><svg class="ni"><use href="#i-menu"/></svg></button>
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Show or hide menu" aria-controls="sidebar" title="Menu"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-menu"/></svg></button>
             <h1 class="admin-page-title"><?php echo htmlspecialchars($pageTitle ?? 'Dashboard'); ?></h1>
             <div class="admin-topbar-right">
                 <span class="admin-user">

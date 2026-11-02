@@ -203,6 +203,7 @@ $punch = fn($act, $label, $cls) => postButton('pages/attendance.php', ['action' 
     <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
         <?php if (can('projects.create')): ?><a href="pages/project-edit.php" class="abtn abtn-primary">+ New Project</a><?php endif; ?>
         <?php if (can('content')): ?><a href="pages/post-edit.php" class="abtn abtn-blue">+ New Blog Post</a><a href="pages/recent-work-edit.php" class="abtn abtn-blue">+ Add Portfolio Item</a><?php endif; ?>
+        <?php if (can('hiring.manage')): ?><a href="pages/hire-edit.php" class="abtn abtn-blue">+ Hire a Person</a><?php endif; ?>
         <?php if (can('jobs')): ?><a href="pages/job-edit.php" class="abtn abtn-blue">+ New Job Opening</a><?php endif; ?>
         <?php if (can('enquiries')): ?><a href="pages/enquiries.php" class="abtn abtn-outline">Enquiries</a><?php endif; ?>
         <?php if (can('applications')): ?><a href="pages/applications.php" class="abtn abtn-outline">Applications</a><?php endif; ?>
