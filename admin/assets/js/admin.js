@@ -5,18 +5,28 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  // Sidebar toggle (mobile)
+  // Menu: on a phone it slides in over the page; on a computer it shrinks to an icon rail (remembered in this browser).
   var toggle  = document.getElementById('sidebarToggle');
   var sidebar = document.getElementById('sidebar');
+  var root    = document.documentElement;
+  function isPhone() { return window.innerWidth <= 768; }
+  function setDrawer(open) {
+    if (!sidebar) return;
+    sidebar.classList.toggle('open', open); document.body.classList.toggle('sb-open', open);
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
   if (toggle && sidebar) {
     toggle.addEventListener('click', function () {
-      sidebar.classList.toggle('open');
+      if (isPhone()) { setDrawer(!sidebar.classList.contains('open')); return; }
+      var collapsed = root.classList.toggle('sb-collapsed');
+      try { localStorage.setItem('bunSidebar', collapsed ? 'collapsed' : 'open'); } catch (e) {}
     });
-    document.addEventListener('click', function (e) {
-      if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-        sidebar.classList.remove('open');
-      }
-    });
+    var ov = document.getElementById('sbOverlay'), cl = document.getElementById('sbClose');
+    if (ov) ov.addEventListener('click', function () { setDrawer(false); });
+    if (cl) cl.addEventListener('click', function () { setDrawer(false); });
+    sidebar.addEventListener('click', function (e) { if (isPhone() && e.target.closest && e.target.closest('a')) setDrawer(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setDrawer(false); });
+    window.addEventListener('resize', function () { if (!isPhone()) setDrawer(false); });
   }
 
   // Confirm delete (delegated, so it also works on blocks that were refreshed without a page reload)

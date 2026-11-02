@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
 requirePermission('hiring.templates');
+hireRequireTables();
 
 const LETTER_TAGS = ['name', 'position', 'department', 'employment_type', 'reports_to', 'work_location', 'joining_date', 'joined_date', 'salary', 'probation', 'notice',
                      'work_timing', 'weekly_off', 'valid_until', 'offer_date', 'offer_ref', 'employee_code', 'projects'];

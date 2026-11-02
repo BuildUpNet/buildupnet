@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
 requirePermission('hiring.manage');
+hireRequireTables();
 
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 $h  = $id ? dbRow("SELECT h.*, c.name AS creator, d.name AS decider, r.name AS reports_name

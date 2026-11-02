@@ -34,6 +34,18 @@ const HIRE_FLOW = [
     'accepted'     => ['joined', 'cancelled'],
 ];
 
+/** Stops with a clear message (instead of a blank error page) when upgrade-hiring.sql has not been run yet. */
+function hireRequireTables(): void {
+    try { if (dbRow("SHOW TABLES LIKE 'hire_requests'") && dbRow("SHOW TABLES LIKE 'letter_templates'")) return; } catch (Throwable $e) { error_log('hiring tables check failed: ' . $e->getMessage()); }
+    $pageTitle = 'Hiring';
+    include __DIR__ . '/admin-header.php';
+    echo '<div class="card"><div class="card-body"><div class="empty-state"><h3>One step is left before you can hire</h3>'
+       . '<p>Open <b>phpMyAdmin</b> &rarr; select your database &rarr; <b>SQL</b> tab &rarr; paste the content of <b>upgrade-hiring.sql</b> &rarr; <b>Go</b>. Then reload this page.</p>'
+       . '<p class="td-muted">You do <b>not</b> need to publish a job opening on the website to hire someone — a person can be hired directly.</p></div></div></div>';
+    include __DIR__ . '/admin-footer.php';
+    exit;
+}
+
 function hireBadge(string $status): string {
     [$label, $cls] = HIRE_STATUSES[$status] ?? [$status, 'abadge-grey'];
     return '<span class="abadge ' . $cls . '">' . clean($label) . '</span>';

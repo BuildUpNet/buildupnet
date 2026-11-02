@@ -92,9 +92,9 @@ include __DIR__ . '/../includes/admin-header.php';
                 $overdue = $p['deadline'] && $p['deadline'] < date('Y-m-d') && !in_array($p['status'], PROJECT_FINISHED, true); ?>
                 <tr>
                     <td class="td-title"><a href="project-view.php?id=<?php echo (int)$p['id']; ?>" style="color:inherit;"><?php echo clean($p['name']); ?></a>
-                        <div class="td-muted"><?php echo clean($p['project_code']); ?><?php echo $p['priority'] === 'high' ? ' · <span style="color:var(--a-danger);">High priority</span>' : ''; ?></div></td>
+                        <div class="td-muted"><?php echo clean((string)$p['project_code']); ?><?php echo $p['priority'] === 'high' ? ' · <span style="color:var(--a-danger);">High priority</span>' : ''; ?></div></td>
                     <td><span class="abadge abadge-blue"><?php echo clean($p['project_type']); ?></span></td>
-                    <td class="td-muted"><?php echo $p['source_type'] === 'owner_direct' ? 'Direct — ' . clean($p['client_name']) . ' (owner)' : clean($p['client_name'] ?: '—') . ($p['client_company'] ? '<br>' . clean($p['client_company']) : ''); ?></td>
+                    <td class="td-muted"><?php echo $p['source_type'] === 'owner_direct' ? 'Direct — ' . clean((string)$p['client_name']) . ' (owner)' : clean($p['client_name'] ?: '—') . ($p['client_company'] ? '<br>' . clean($p['client_company']) : ''); ?></td>
                     <td class="td-muted"><?php echo clean($p['brought_by'] ?: '—'); ?></td>
                     <td class="td-muted"><?php echo clean($p['developers'] ?: '—'); ?></td>
                     <td><?php echo statusBadge($p['status']); ?></td>

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
 requirePermission('hiring.manage');
+hireRequireTables();
 
 $id   = (int)($_GET['id'] ?? 0);
 $hire = null;
@@ -110,7 +111,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!$errors) {
             $fresh = dbRow("SELECT * FROM hire_requests WHERE id = ?", 'i', [$id]);
-            if ($submit && $fresh && $fresh['status'] === 'draft' && !hireMove($fresh, 'pending', ['submitted_at' => ['s', date('Y-m-d H:i:s')]])) {
+            $approveNow = ($_POST['action'] ?? '') === 'approve_now' && can('hiring.approve');       // the owner is the approver, so no waiting is needed
+            if ($approveNow && $fresh && $fresh['status'] === 'draft' && !hireMove($fresh, 'pending', ['submitted_at' => ['s', date('Y-m-d H:i:s')]])) {
+                $fresh['status'] = 'pending'; hireLog($id, 'submitted', 'Owner hired directly.');
+                $when = date('Y-m-d H:i:s'); $uid = currentUserId();
+                if (!hireMove($fresh, 'approved', ['decided_by_id' => ['i', $uid], 'decided_at' => ['s', $when], 'decision_note' => ['s', 'Hired directly by the owner.'], 'offer_ref' => ['s', sprintf('BUN/OFR/%s/%04d', date('Y'), $id)]])) {
+                    hireLog($id, 'approved', 'Hired directly by the owner.');
+                    flashMessage('success', 'Approved. Download the offer letter below and give it to the candidate.');
+                } else flashMessage('success', 'Saved as draft.');
+            } elseif ($submit && $fresh && $fresh['status'] === 'draft' && !hireMove($fresh, 'pending', ['submitted_at' => ['s', date('Y-m-d H:i:s')]])) {
                 hireLog($id, 'submitted', 'Sent to the owner for approval.');
                 flashMessage('success', 'Sent to the owner for approval.');
             } else flashMessage('success', 'Saved as draft. Send it to the owner when it is ready.');
@@ -132,7 +141,7 @@ include __DIR__ . '/../includes/admin-header.php';
 <input type="hidden" name="source_application_id" value="<?php echo (int)($in['source_application_id'] ?? 0) ?: ''; ?>">
 
 <div class="card" style="margin-bottom:20px;">
-    <div class="card-header"><h2>1. Candidate</h2><a href="<?php echo $hire ? 'hire-view.php?id=' . $id : 'hires.php'; ?>" class="abtn abtn-outline abtn-sm">← Back</a></div>
+    <div class="card-header"><h2>1. Candidate <span class="td-muted" style="font-weight:400;font-size:.8rem;">· no job post on the website is needed</span></h2><a href="<?php echo $hire ? 'hire-view.php?id=' . $id : 'hires.php'; ?>" class="abtn abtn-outline abtn-sm">← Back</a></div>
     <div class="card-body"><div class="form-grid">
         <div class="form-group"><label>Full name * <span class="hint">(as in ID proof, English letters)</span></label><input type="text" name="full_name" required maxlength="120" value="<?php echo $v('full_name'); ?>"></div>
         <div class="form-group"><label>Phone</label><input type="tel" name="phone" maxlength="40" value="<?php echo $v('phone'); ?>"></div>
@@ -198,7 +207,9 @@ include __DIR__ . '/../includes/admin-header.php';
 </div>
 
 <div class="form-actions" style="margin-bottom:30px;">
-    <button type="submit" name="action" value="submit" class="abtn abtn-primary">Save &amp; send to owner</button>
+    <?php if (can('hiring.approve')): ?><button type="submit" name="action" value="approve_now" class="abtn abtn-primary">Save &amp; approve now</button>
+    <button type="submit" name="action" value="submit" class="abtn abtn-outline">Save &amp; keep waiting for approval</button>
+    <?php else: ?><button type="submit" name="action" value="submit" class="abtn abtn-primary">Save &amp; send to owner</button><?php endif; ?>
     <button type="submit" name="action" value="save" class="abtn abtn-outline">Save as draft</button>
 </div>
 </form>

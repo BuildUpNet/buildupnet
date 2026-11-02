@@ -137,7 +137,7 @@ $punch = fn($act, $label, $cls) => postButton('pages/attendance.php', ['action' 
                 <tr><td colspan="4" class="td-muted" style="text-align:center; padding:20px;"><?php echo $isDev ? 'No project is assigned to you yet.' : 'No projects yet'; ?></td></tr>
             <?php else: foreach ($myProjects as $pr): ?>
                 <tr>
-                    <td data-label="Project" class="td-title"><a href="pages/project-view.php?id=<?php echo (int)$pr['id']; ?>"><?php echo clean($pr['name']); ?></a><div class="td-muted"><?php echo clean($pr['project_code']); ?></div></td>
+                    <td data-label="Project" class="td-title"><a href="pages/project-view.php?id=<?php echo (int)$pr['id']; ?>"><?php echo clean($pr['name']); ?></a><div class="td-muted"><?php echo clean((string)$pr['project_code']); ?></div></td>
                     <td data-label="Type" class="td-muted"><?php echo clean($pr['project_type']); ?></td>
                     <td data-label="Status"><?php echo statusBadge($pr['status']); ?></td>
                     <td data-label="Deadline" class="td-muted"><?php echo $pr['deadline'] ? clean(fmtDate($pr['deadline'])) : '—'; ?></td>
