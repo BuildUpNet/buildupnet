@@ -191,8 +191,8 @@ include __DIR__ . '/../includes/admin-header.php';
     <div class="btn-group">
         <a href="hires.php" class="abtn abtn-outline abtn-sm">← All hires</a>
         <?php if (hireEditable($h)): ?><a href="hire-edit.php?id=<?php echo $id; ?>" class="abtn abtn-outline abtn-sm">Edit</a><?php endif; ?>
-        <?php if (hireLetterAllowed($h, 'offer')): ?><a href="<?php echo $letterUrl('offer'); ?>" class="abtn abtn-primary abtn-sm" target="_blank" rel="noopener">Offer letter (PDF)</a><?php endif; ?>
-        <?php if (hireLetterAllowed($h, 'joining')): ?><a href="<?php echo $letterUrl('joining'); ?>" class="abtn abtn-primary abtn-sm" target="_blank" rel="noopener">Joining letter (PDF)</a><?php endif; ?>
+        <?php if (hireLetterAllowed($h, 'offer')): ?><a href="<?php echo $letterUrl('offer'); ?>" class="abtn abtn-primary abtn-sm" download>Offer letter (PDF)</a><?php endif; ?>
+        <?php if (hireLetterAllowed($h, 'joining')): ?><a href="<?php echo $letterUrl('joining'); ?>" class="abtn abtn-primary abtn-sm" download>Joining letter (PDF)</a><?php endif; ?>
     </div>
 </div>
 
@@ -241,7 +241,7 @@ include __DIR__ . '/../includes/admin-header.php';
         <?php break;
         case 'approved': ?>
             <p>Approved<?php echo $h['decider'] ? ' by ' . clean($h['decider']) : ''; ?>. Download the offer letter, give it to the candidate, then mark it as issued. Tick the documents below as you receive them.</p>
-            <div class="btn-group"><a href="<?php echo $letterUrl('offer'); ?>" class="abtn abtn-outline" target="_blank" rel="noopener">Download offer letter</a>
+            <div class="btn-group"><a href="<?php echo $letterUrl('offer'); ?>" class="abtn abtn-outline" download>Download offer letter</a>
                 <?php echo $aj('issue_offer', 'Mark offer as issued', 'abtn abtn-primary', 'The offer letter will be dated today. Continue?'); ?>
                 <?php if (currentRole() === 'owner') echo $aj('cancel', 'Cancel hire', 'abtn abtn-danger abtn-sm', 'Cancel this approved hire?'); ?></div>
         <?php break;
