@@ -76,27 +76,68 @@ const BLOG_CATEGORIES = [
 ];
 
 /**
- * Services used in the menu, footer and blog "related services" boxes. Each points to its card on services.php today;
- * when a service gets its own page, change only the address here and every link on the site follows.
+ * The services shown in the footer, blog boxes, Work page and "You may also need".
+ * They come from the service_pages table (Admin -> Service Pages). Until upgrade-service-pages.sql has been run,
+ * the list below is used and every link goes to the matching card on services.php, so nothing breaks.
  */
-const SERVICE_LINKS = [
-    'web'       => ['Web Development',    '/services.php#web-development'],
-    'ecommerce' => ['Ecommerce Websites', '/services.php#ecommerce'],
-    'app'       => ['App Development',    '/services.php#app-development'],
-    'seo'       => ['SEO Services',       '/services.php#seo'],
-    'marketing' => ['Digital Marketing',  '/services.php#digital-marketing'],
-    'network'   => ['Networking & AMC',   '/services.php#networking'],
+const SERVICE_FALLBACK = [
+    ['slug' => 'web-development',    'label' => 'Web Development',    'anchor' => 'web-development',    'cat' => 'Web Development',   'kw' => 'website,web development,web design,portal,school,landing'],
+    ['slug' => 'ecommerce-websites', 'label' => 'Ecommerce Websites', 'anchor' => 'ecommerce',          'cat' => 'Web Development',   'kw' => 'ecommerce,e-commerce,shop,store'],
+    ['slug' => 'app-development',    'label' => 'App Development',    'anchor' => 'app-development',    'cat' => 'App Development',   'kw' => 'app,android,ios,mobile'],
+    ['slug' => 'seo-services',       'label' => 'SEO Services',       'anchor' => 'seo',                'cat' => 'SEO',               'kw' => 'seo,local seo,google business'],
+    ['slug' => 'digital-marketing',  'label' => 'Digital Marketing',  'anchor' => 'digital-marketing',  'cat' => 'Digital Marketing', 'kw' => 'marketing,social,ads,content,campaign'],
+    ['slug' => 'networking-amc',     'label' => 'Networking & AMC',   'anchor' => 'networking',         'cat' => 'Networking',        'kw' => 'network,amc,cisco'],
 ];
 
-/** Which services a blog category leads to (keys of SERVICE_LINKS). */
-const BLOG_CATEGORY_SERVICES = [
-    'Web Development'   => ['web', 'ecommerce'],
-    'SEO'               => ['seo'],
-    'Digital Marketing' => ['marketing'],
-    'App Development'   => ['app'],
-    'Networking'        => ['network'],
-    'Business Tips'     => ['web', 'seo', 'marketing'],
-];
+/** True when the service_pages table exists and has published pages (checked once per request). */
+function servicePagesLive(): bool {
+    return count(servicesList(true)) > 0;
+}
+
+/** Services in menu order: [slug, label, url, cat, kw, live]. */
+function servicesList(bool $liveOnly = false): array {
+    static $live = null, $list = null;
+    if ($list === null) {
+        $list = [];
+        try {
+            foreach (dbRows("SELECT slug, nav_label, blog_category, work_keywords FROM service_pages WHERE status = 'published' ORDER BY sort_order, id") as $r) {
+                $list[] = ['slug' => $r['slug'], 'label' => $r['nav_label'], 'url' => SITE_URL . '/services/' . rawurlencode($r['slug']),
+                           'cat' => (string)$r['blog_category'], 'kw' => (string)$r['work_keywords']];
+            }
+        } catch (Throwable $e) { $list = []; }
+        $live = $list !== [];
+        if (!$live) {
+            foreach (SERVICE_FALLBACK as $f) $list[] = ['slug' => $f['slug'], 'label' => $f['label'], 'url' => SITE_URL . '/services.php#' . $f['anchor'], 'cat' => $f['cat'], 'kw' => $f['kw']];
+        }
+    }
+    return ($liveOnly && !$live) ? [] : $list;
+}
+
+/** Address of a service (by slug); unknown slugs go to the Services page. */
+function serviceUrl(string $slug): string {
+    foreach (servicesList() as $s) if ($s['slug'] === $slug) return $s['url'];
+    return SITE_URL . '/services.php';
+}
+
+/** Services for a blog category; categories with none get the first three services. */
+function servicesForCategory(string $category): array {
+    $all = servicesList();
+    $hit = array_values(array_filter($all, fn($s) => $s['cat'] !== '' && strcasecmp($s['cat'], $category) === 0));
+    return $hit ?: array_slice($all, 0, 3);
+}
+
+/** The service a portfolio category belongs to (first service whose keywords appear in the category; else the first service). */
+function serviceForWork(?string $category): array {
+    $c = strtolower((string)$category);
+    $all = servicesList();
+    foreach ($all as $s) {
+        foreach (explode(',', strtolower($s['kw'])) as $w) {
+            $w = trim($w);
+            if ($w !== '' && strpos($c, $w) !== false) return $s;
+        }
+    }
+    return $all[0];
+}
 
 /** Colours of a blog category chip (same look as on the blog page). */
 function categoryChipStyle(?string $category): string {
@@ -104,25 +145,16 @@ function categoryChipStyle(?string $category): string {
     return 'background:' . $c['bg'] . '; color:' . $c['color'] . ';';
 }
 
-/** Which service a portfolio category belongs to (the category is free text in the admin). */
-function serviceKeyForCategory(?string $category): string {
-    $c = strtolower((string)$category);
-    if (preg_match('/ecommerce|e-commerce|shop|store/', $c)) return 'ecommerce';
-    if (preg_match('/\bapps?\b|android|ios|mobile/', $c)) return 'app';
-    if (preg_match('/seo/', $c)) return 'seo';
-    if (preg_match('/marketing|social|ads|content/', $c)) return 'marketing';
-    if (preg_match('/network|amc|cisco/', $c)) return 'network';
-    return 'web';
-}
-
-function serviceUrl(string $key): string {
-    return SITE_URL . (SERVICE_LINKS[$key][1] ?? '/services.php');
-}
-
-/** Services for a blog category; unknown categories get the three most common ones. */
-function servicesForCategory(string $category): array {
-    $keys = BLOG_CATEGORY_SERVICES[$category] ?? ['web', 'seo', 'marketing'];
-    return array_map(fn($k) => ['label' => SERVICE_LINKS[$k][0], 'url' => serviceUrl($k)], $keys);
+/** Lines "Left :: Right" -> [[left, right], ...]. A line without "::" becomes [line, '']. */
+function pairLines(?string $text): array {
+    $out = [];
+    foreach (preg_split('/\R/', (string)$text) as $line) {
+        $line = trim($line);
+        if ($line === '') continue;
+        $parts = explode('::', $line, 2);
+        $out[] = [trim($parts[0]), trim($parts[1] ?? '')];
+    }
+    return $out;
 }
 
 /** Newest posts for the footer; a database problem must never break a page. */
@@ -159,6 +191,8 @@ function canonicalUrl() {
 // Helper: highlight active nav link
 function activePage($page) {
     $current = basename($_SERVER['SCRIPT_NAME']);
+    if ($current === 'service.php') $current = 'services.php';     // a service page lights up "Services"
+    if ($current === 'blog-post.php') $current = 'blog.php';       // a blog post lights up "Blog"
     return ($current === $page) ? 'active' : '';
 }
 

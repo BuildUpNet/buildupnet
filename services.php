@@ -42,6 +42,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Web Development</h3>
                 <p>High-performance, SEO-friendly websites built with HTML5, CSS3, PHP and React — from corporate sites to custom web applications.</p>
+                <a href="<?php echo e(serviceUrl('web-development')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="ecommerce">
@@ -50,6 +51,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Ecommerce Websites</h3>
                 <p>Feature-rich online stores with secure payment gateways (Razorpay, PayU), product management and mobile-optimized checkout.</p>
+                <a href="<?php echo e(serviceUrl('ecommerce-websites')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="app-development">
@@ -58,6 +60,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Android & iOS Apps</h3>
                 <p>Native mobile apps built with Kotlin, Java and Swift — from MVP to full-scale apps, deployed to the Play Store and App Store.</p>
+                <a href="<?php echo e(serviceUrl('app-development')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="seo">
@@ -66,6 +69,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>SEO & Link Building</h3>
                 <p>On-page, technical and local SEO plus white-hat link building through guest posting, niche edits and digital PR.</p>
+                <a href="<?php echo e(serviceUrl('seo-services')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="content-marketing">
@@ -74,6 +78,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Content Marketing</h3>
                 <p>SEO-optimized blogs, web copy and content calendars that attract your audience and build long-term brand authority.</p>
+                <a href="<?php echo e(serviceUrl('digital-marketing')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="digital-marketing">
@@ -82,6 +87,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Social Media & Ads</h3>
                 <p>Facebook, Instagram and LinkedIn campaigns plus Google Ads & PPC management — keyword research through performance tracking.</p>
+                <a href="<?php echo e(serviceUrl('digital-marketing')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="local-seo">
@@ -90,6 +96,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Local SEO & Google Business</h3>
                 <p>Optimized Google Business Profiles and local search strategy — ideal for shops, clinics, schools and local businesses.</p>
+                <a href="<?php echo e(serviceUrl('seo-services')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="networking">
@@ -98,6 +105,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Networking & AMC</h3>
                 <p>Cisco networking setup — routers, switches, firewalls — plus Annual Maintenance Contracts covering hardware and software upkeep.</p>
+                <a href="<?php echo e(serviceUrl('networking-amc')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
         </div>

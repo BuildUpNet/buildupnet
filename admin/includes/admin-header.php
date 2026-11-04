@@ -90,6 +90,7 @@ if (can('content') || can('jobs')) {
     if (can('content')) {
         $nav('pages/posts.php', 'edit', 'Blog Posts', $pg === 'posts.php');
         $nav('pages/recent-work.php', 'image', 'Recent Work', $pg === 'recent-work.php');
+        $nav('pages/service-pages.php', 'globe', 'Service Pages', in_array($pg, ['service-pages.php', 'service-page-edit.php'], true));
     }
     if (can('jobs')) $nav('pages/jobs.php', 'briefcase', 'Job Openings', $pg === 'jobs.php');
 }

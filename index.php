@@ -101,7 +101,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Web Development</h3>
                 <p>Fast, responsive websites built with clean code — from business sites to e-commerce platforms.</p>
-                <a href="<?php echo e(serviceUrl('web')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('web-development')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal>
@@ -110,7 +110,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Android & iOS Apps</h3>
                 <p>Native mobile apps built with Kotlin and Swift — designed for App Store and Play Store approval.</p>
-                <a href="<?php echo e(serviceUrl('app')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('app-development')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal>
@@ -119,7 +119,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>SEO & Content</h3>
                 <p>On-page, off-page SEO and content that's written for people first — and ranks because of it.</p>
-                <a href="<?php echo e(serviceUrl('seo')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('seo-services')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal>
@@ -128,7 +128,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Networking & AMC</h3>
                 <p>Enterprise networking setup plus annual maintenance contracts to keep your IT running smoothly.</p>
-                <a href="<?php echo e(serviceUrl('network')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('networking-amc')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </div>
         <div style="text-align:center; margin-top:40px;" data-reveal>

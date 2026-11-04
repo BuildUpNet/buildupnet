@@ -39,8 +39,8 @@ if (!defined('SITE_URL')) { require_once __DIR__ . '/config.php'; }
 
         <div class="footer-col">
             <h4>Services</h4>
-<?php foreach (SERVICE_LINKS as $key => $svc): ?>
-            <a href="<?php echo e(serviceUrl($key)); ?>"><?php echo e($svc[0]); ?></a>
+<?php foreach (servicesList() as $svc): ?>
+            <a href="<?php echo e($svc['url']); ?>"><?php echo e($svc['label']); ?></a>
 <?php endforeach; ?>
         </div>
 

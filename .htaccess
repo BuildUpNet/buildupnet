@@ -22,8 +22,10 @@ RewriteRule (^|/)\.(?!well-known/) - [F,L]
 
 # 3b. Clean URLs
 #   /blog/my-post-slug  ->  blog-post.php?slug=my-post-slug   (old ?slug= URLs are 301-redirected by PHP)
+#   /services/web-development -> service.php?slug=web-development   (pages come from the service_pages table)
 #   /sitemap.xml        ->  sitemap.php  (generated from the database)
 RewriteRule ^blog/([a-z0-9-]+)/?$ blog-post.php?slug=$1 [L,QSA]
+RewriteRule ^services/([a-z0-9-]+)/?$ service.php?slug=$1 [L,QSA]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 # /index.php and /index  ->  /   (one URL for the home page)
 RewriteCond %{THE_REQUEST} \s/index(\.php)?[\s?] [NC]
