@@ -66,7 +66,7 @@ if (!isset($headExtra)) $headExtra = '';
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css?v=<?php echo (int)@filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
 
     <!-- Favicon -->
     <link rel="icon" href="<?php echo SITE_URL; ?>/assets/img/logo/favicon.ico" sizes="any">
@@ -152,10 +152,9 @@ if (!isset($headExtra)) $headExtra = '';
 
         <nav class="main-nav" id="mainNav">
             <a href="<?php echo SITE_URL; ?>/" class="<?php echo activePage('index.php'); ?>">Home</a>
-            <a href="<?php echo SITE_URL; ?>/about.php" class="<?php echo activePage('about.php'); ?>">About</a>
             <a href="<?php echo SITE_URL; ?>/services.php" class="<?php echo activePage('services.php'); ?>">Services</a>
             <a href="<?php echo SITE_URL; ?>/portfolio.php" class="<?php echo activePage('portfolio.php'); ?>">Work</a>
-            <a href="<?php echo SITE_URL; ?>/careers.php" class="<?php echo activePage('careers.php'); ?>">Careers</a>
+            <a href="<?php echo SITE_URL; ?>/about.php" class="<?php echo activePage('about.php'); ?>">About</a>
             <a href="<?php echo SITE_URL; ?>/blog.php" class="<?php echo activePage('blog.php'); ?>">Blog</a>
             <a href="<?php echo SITE_URL; ?>/contact.php" class="<?php echo activePage('contact.php'); ?>">Contact</a>
         </nav>
@@ -174,3 +173,8 @@ if (!isset($headExtra)) $headExtra = '';
 </header>
 
 <main id="main-content">
+<?php
+    // Visible breadcrumb: pages may set $breadcrumbTrail themselves (blog posts), the other inner pages use the same names as the schema above.
+    if (!isset($breadcrumbTrail) && isset($crumbNames[$thisPage])) $breadcrumbTrail = [[$crumbNames[$thisPage], null]];
+    if (!empty($breadcrumbTrail)) echo breadcrumbHtml($breadcrumbTrail);
+?>

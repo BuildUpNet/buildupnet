@@ -18,12 +18,16 @@ include __DIR__ . '/includes/header.php';
                 fast-loading websites to result-driven marketing campaigns. Each service
                 works on its own or as part of a larger plan.
             </p>
+            <p class="inline-links">
+                Not sure what you need? <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">Talk to us</a>
+                or look at <a class="text-link" href="<?php echo SITE_URL; ?>/portfolio.php">projects we have already delivered</a>.
+            </p>
         </div>
     </div>
 </section>
 
 <!-- ===== Services Grid ===== -->
-<section id="web-development" class="section">
+<section id="services-grid" class="section">
     <div class="container">
         <div class="section-head" data-reveal>
             <span class="eyebrow">What we offer</span>
@@ -32,7 +36,7 @@ include __DIR__ . '/includes/header.php';
 
         <div class="services-grid">
 
-            <div class="service-card" data-reveal>
+            <div class="service-card" data-reveal id="web-development">
                 <div class="service-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                 </div>
@@ -40,7 +44,7 @@ include __DIR__ . '/includes/header.php';
                 <p>High-performance, SEO-friendly websites built with HTML5, CSS3, PHP and React — from corporate sites to custom web applications.</p>
             </div>
 
-            <div class="service-card" data-reveal>
+            <div class="service-card" data-reveal id="ecommerce">
                 <div class="service-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                 </div>
@@ -56,7 +60,7 @@ include __DIR__ . '/includes/header.php';
                 <p>Native mobile apps built with Kotlin, Java and Swift — from MVP to full-scale apps, deployed to the Play Store and App Store.</p>
             </div>
 
-            <div class="service-card" data-reveal id="digital-marketing">
+            <div class="service-card" data-reveal id="seo">
                 <div class="service-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
@@ -64,7 +68,7 @@ include __DIR__ . '/includes/header.php';
                 <p>On-page, technical and local SEO plus white-hat link building through guest posting, niche edits and digital PR.</p>
             </div>
 
-            <div class="service-card" data-reveal>
+            <div class="service-card" data-reveal id="content-marketing">
                 <div class="service-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
@@ -72,7 +76,7 @@ include __DIR__ . '/includes/header.php';
                 <p>SEO-optimized blogs, web copy and content calendars that attract your audience and build long-term brand authority.</p>
             </div>
 
-            <div class="service-card" data-reveal>
+            <div class="service-card" data-reveal id="digital-marketing">
                 <div class="service-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                 </div>
@@ -80,7 +84,7 @@ include __DIR__ . '/includes/header.php';
                 <p>Facebook, Instagram and LinkedIn campaigns plus Google Ads & PPC management — keyword research through performance tracking.</p>
             </div>
 
-            <div class="service-card" data-reveal>
+            <div class="service-card" data-reveal id="local-seo">
                 <div class="service-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </div>
@@ -185,6 +189,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
             </div>
         </div>
+        <p class="inline-links" style="text-align:center;" data-reveal>Ready to start? <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">Contact us</a> or read our <a class="text-link" href="<?php echo SITE_URL; ?>/blog.php">guides on the blog</a>.</p>
     </div>
 </section>
 

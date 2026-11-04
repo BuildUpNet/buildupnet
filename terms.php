@@ -23,6 +23,7 @@ include __DIR__ . '/includes/header.php';
                 These terms govern your use of the Buildupnet website and the services
                 we provide. Please read them carefully before engaging with us.
             </p>
+            <p class="inline-links">See how we handle your data in our <a class="text-link" href="<?php echo SITE_URL; ?>/privacy-policy.php">Privacy Policy</a>. Questions? <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">Contact us</a>.</p>
         </div>
     </div>
 </section>

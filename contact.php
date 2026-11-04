@@ -17,6 +17,11 @@ include __DIR__ . '/includes/header.php';
                 Send us a message, call, or message us on WhatsApp — whichever's easiest.
                 We typically reply within one business day.
             </p>
+            <p class="inline-links">
+                Want to know more first? Browse <a class="text-link" href="<?php echo SITE_URL; ?>/services.php">our services</a> or
+                <a class="text-link" href="<?php echo SITE_URL; ?>/portfolio.php">see our work</a>. Looking for a job?
+                See <a class="text-link" href="<?php echo SITE_URL; ?>/careers.php">careers</a>.
+            </p>
         </div>
     </div>
 </section>

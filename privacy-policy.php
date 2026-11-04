@@ -24,6 +24,7 @@ include __DIR__ . '/includes/header.php';
                 This policy explains what personal information Buildupnet collects, how we use
                 it, and what rights you have over your data.
             </p>
+            <p class="inline-links">Also read our <a class="text-link" href="<?php echo SITE_URL; ?>/terms.php">Terms &amp; Conditions</a>. Questions? <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">Contact us</a>.</p>
         </div>
     </div>
 </section>

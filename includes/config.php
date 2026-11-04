@@ -75,6 +75,72 @@ const BLOG_CATEGORIES = [
     'Business Tips'     => ['bg' => '#E7F0F4', 'color' => '#005470'],
 ];
 
+/**
+ * Services used in the menu, footer and blog "related services" boxes. Each points to its card on services.php today;
+ * when a service gets its own page, change only the address here and every link on the site follows.
+ */
+const SERVICE_LINKS = [
+    'web'       => ['Web Development',    '/services.php#web-development'],
+    'ecommerce' => ['Ecommerce Websites', '/services.php#ecommerce'],
+    'app'       => ['App Development',    '/services.php#app-development'],
+    'seo'       => ['SEO Services',       '/services.php#seo'],
+    'marketing' => ['Digital Marketing',  '/services.php#digital-marketing'],
+    'network'   => ['Networking & AMC',   '/services.php#networking'],
+];
+
+/** Which services a blog category leads to (keys of SERVICE_LINKS). */
+const BLOG_CATEGORY_SERVICES = [
+    'Web Development'   => ['web', 'ecommerce'],
+    'SEO'               => ['seo'],
+    'Digital Marketing' => ['marketing'],
+    'App Development'   => ['app'],
+    'Networking'        => ['network'],
+    'Business Tips'     => ['web', 'seo', 'marketing'],
+];
+
+/** Colours of a blog category chip (same look as on the blog page). */
+function categoryChipStyle(?string $category): string {
+    $c = BLOG_CATEGORIES[(string)$category] ?? ['bg' => '#E7F0F4', 'color' => '#005470'];
+    return 'background:' . $c['bg'] . '; color:' . $c['color'] . ';';
+}
+
+/** Which service a portfolio category belongs to (the category is free text in the admin). */
+function serviceKeyForCategory(?string $category): string {
+    $c = strtolower((string)$category);
+    if (preg_match('/ecommerce|e-commerce|shop|store/', $c)) return 'ecommerce';
+    if (preg_match('/\bapps?\b|android|ios|mobile/', $c)) return 'app';
+    if (preg_match('/seo/', $c)) return 'seo';
+    if (preg_match('/marketing|social|ads|content/', $c)) return 'marketing';
+    if (preg_match('/network|amc|cisco/', $c)) return 'network';
+    return 'web';
+}
+
+function serviceUrl(string $key): string {
+    return SITE_URL . (SERVICE_LINKS[$key][1] ?? '/services.php');
+}
+
+/** Services for a blog category; unknown categories get the three most common ones. */
+function servicesForCategory(string $category): array {
+    $keys = BLOG_CATEGORY_SERVICES[$category] ?? ['web', 'seo', 'marketing'];
+    return array_map(fn($k) => ['label' => SERVICE_LINKS[$k][0], 'url' => serviceUrl($k)], $keys);
+}
+
+/** Newest posts for the footer; a database problem must never break a page. */
+function footerLatestPosts(int $limit = 3): array {
+    try { return blogPosts($limit); } catch (Throwable $e) { return []; }
+}
+
+/** Visible breadcrumb line. $trail = [[label, url or null], ...] after "Home"; the last item is the current page. */
+function breadcrumbHtml(array $trail): string {
+    $out = '<nav class="breadcrumb" aria-label="Breadcrumb"><div class="container"><a href="' . e(SITE_URL) . '/">Home</a>';
+    $last = count($trail) - 1;
+    foreach ($trail as $i => [$label, $url]) {
+        $out .= '<span class="bc-sep" aria-hidden="true">/</span>';
+        $out .= ($i === $last || !$url) ? '<span aria-current="page">' . e($label) . '</span>' : '<a href="' . e($url) . '">' . e($label) . '</a>';
+    }
+    return $out . '</div></nav>' . "\n";
+}
+
 /** JSON for <script type="application/ld+json"> — safe against quotes, </script>, unicode. */
 function ldJson(array $data): string {
     return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT);

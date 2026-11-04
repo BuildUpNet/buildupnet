@@ -26,7 +26,7 @@ if (!$post) {
     echo '<section class="section"><div class="container" style="text-align:center; padding: 80px 0;">
         <h1>Post Not Found</h1>
         <p style="margin: 16px 0 28px;">This article doesn\'t exist or may have been moved.</p>
-        <a href="<?php echo SITE_URL; ?>/blog.php" class="btn btn-primary">Back to Blog</a>
+        <a href="' . SITE_URL . '/blog.php" class="btn btn-primary">Back to Blog</a>
     </div></section>';
     include __DIR__ . '/includes/footer.php';
     exit;
@@ -51,6 +51,7 @@ $modified        = $post['updated'];
 // Related posts
 $related = relatedPosts($post['category'], $post['slug'], 2);
 
+$breadcrumbTrail = [['Blog', SITE_URL . '/blog.php'], [$post['title'], null]];
 include __DIR__ . '/includes/header.php';
 ?>
 
@@ -115,9 +116,19 @@ include __DIR__ . '/includes/header.php';
             <?php echo sanitizeHtml($post['content']); ?>
         </div>
 
+        <aside class="related-services" aria-label="Related services">
+            <h3>Need help with this? See our services</h3>
+            <ul>
+                <?php foreach (servicesForCategory((string)$post['category']) as $svc): ?>
+                <li><a href="<?php echo e($svc['url']); ?>"><?php echo e($svc['label']); ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+            <p class="inline-links" style="margin-bottom:0;"><a class="text-link" href="<?php echo SITE_URL; ?>/services.php">All services</a> · <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">Talk to us</a> · <a class="text-link" href="<?php echo SITE_URL; ?>/portfolio.php">See our work</a></p>
+        </aside>
+
         <!-- E-E-A-T: who wrote this, who stands behind it, how to reach a real person -->
         <aside class="testimonial-card" style="margin-top:40px; text-align:left;" aria-label="About the author">
-            <h4 style="margin:0 0 6px;">Written by <?php echo $isKnownAuthor ? '<a href="<?php echo SITE_URL; ?>/about.php#team" rel="author">' . e($post['author']) . '</a>' : e($post['author']); ?></h4>
+            <h4 style="margin:0 0 6px;">Written by <?php echo $isKnownAuthor ? '<a href="' . e(SITE_URL) . '/about.php#team" rel="author">' . e($post['author']) . '</a>' : e($post['author']); ?></h4>
             <p style="margin:0 0 10px; color:var(--color-slate); font-size:0.9rem;"><?php echo e($authorRole); ?>, <?php echo e(SITE_NAME); ?> — a web design &amp; digital marketing team in Sangrur, Punjab, working with businesses across India since <?php echo e(SITE_FOUNDING_YEAR); ?>.</p>
             <p style="margin:0; font-size:0.88rem; color:var(--color-slate);">
                 Published <?php echo e($post['date_display']); ?><?php if ($modified !== $post['date']): ?> · Last updated <?php echo e(date('F j, Y', strtotime($modified))); ?><?php endif; ?>.

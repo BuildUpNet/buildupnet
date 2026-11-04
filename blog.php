@@ -123,6 +123,21 @@ include __DIR__ . '/includes/header.php';
 </section>
 <?php endif; ?>
 
+<!-- ===== Services strip ===== -->
+<section class="section">
+    <div class="container">
+        <aside class="related-services" aria-label="Our services">
+            <h3>Looking for help, not just reading? Our services</h3>
+            <ul>
+                <?php foreach (SERVICE_LINKS as $svcKey => $svc): ?>
+                <li><a href="<?php echo e(serviceUrl($svcKey)); ?>"><?php echo e($svc[0]); ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+            <p class="inline-links" style="margin-bottom:0;"><a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">Talk to us</a> · <a class="text-link" href="<?php echo SITE_URL; ?>/portfolio.php">See our work</a></p>
+        </aside>
+    </div>
+</section>
+
 <!-- ===== Newsletter Band ===== -->
 <section class="section">
     <div class="container">

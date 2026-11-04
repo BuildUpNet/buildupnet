@@ -53,6 +53,8 @@ include __DIR__ . '/includes/header.php';
                     <?php if (!empty($item['description'])): ?>
                         <p style="font-size:0.9rem; margin: 0 0 10px;"><?php echo htmlspecialchars($item['description']); ?></p>
                     <?php endif; ?>
+                    <?php $svcKey = serviceKeyForCategory($item['category']); ?>
+                    <p style="font-size:0.85rem; margin: 0 0 10px;">Service: <a class="text-link" href="<?php echo e(serviceUrl($svcKey)); ?>"><?php echo e(SERVICE_LINKS[$svcKey][0]); ?></a></p>
                     <?php if (safeUrl($item['live_url'])): ?>
                         <a href="<?php echo htmlspecialchars(safeUrl($item['live_url'])); ?>" target="_blank" rel="noopener noreferrer">Visit live site →</a>
                     <?php endif; ?>
@@ -65,6 +67,7 @@ include __DIR__ . '/includes/header.php';
         <div style="text-align:center; margin-top:48px;" data-reveal>
             <p style="margin-bottom:16px;">Want results like these for your business?</p>
             <a href="#" data-open-quote class="btn btn-primary">Get a Free Quote</a>
+            <p class="inline-links">Or see <a class="text-link" href="<?php echo SITE_URL; ?>/services.php">everything we offer</a> / <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">contact us</a>.</p>
         </div>
     </div>
 </section>

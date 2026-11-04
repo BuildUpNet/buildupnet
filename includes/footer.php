@@ -38,23 +38,30 @@ if (!defined('SITE_URL')) { require_once __DIR__ . '/config.php'; }
         </div>
 
         <div class="footer-col">
-            <h4>Company</h4>
-            <a href="<?php echo SITE_URL; ?>/about.php">About Us</a>
-            <a href="<?php echo SITE_URL; ?>/portfolio.php">Our Work</a>
-            <a href="<?php echo SITE_URL; ?>/careers.php">Careers</a>
-            <a href="<?php echo SITE_URL; ?>/blog.php">Blog</a>
-            <a href="<?php echo SITE_URL; ?>/services.php">Services</a>
-            <a href="<?php echo SITE_URL; ?>/contact.php">Contact</a>
+            <h4>Services</h4>
+<?php foreach (SERVICE_LINKS as $key => $svc): ?>
+            <a href="<?php echo e(serviceUrl($key)); ?>"><?php echo e($svc[0]); ?></a>
+<?php endforeach; ?>
         </div>
 
         <div class="footer-col">
-            <h4>Services</h4>
-            <a href="<?php echo SITE_URL; ?>/services.php#web-development">Web Development</a>
-            <a href="<?php echo SITE_URL; ?>/services.php#app-development">App Development</a>
-            <a href="<?php echo SITE_URL; ?>/services.php#digital-marketing">Digital Marketing</a>
-            <a href="<?php echo SITE_URL; ?>/services.php#networking">Networking & AMC</a>
+            <h4>Company</h4>
+            <a href="<?php echo SITE_URL; ?>/about.php">About Us</a>
+            <a href="<?php echo SITE_URL; ?>/portfolio.php">Our Work</a>
+            <a href="<?php echo SITE_URL; ?>/blog.php">Blog</a>
+            <a href="<?php echo SITE_URL; ?>/careers.php">Careers</a>
+            <a href="<?php echo SITE_URL; ?>/contact.php">Contact</a>
         </div>
 
+<?php $footPosts = footerLatestPosts(3); if ($footPosts): ?>
+        <div class="footer-col">
+            <h4>From the Blog</h4>
+<?php foreach ($footPosts as $fp): ?>
+            <a href="<?php echo e(postUrl($fp['slug'])); ?>"><?php echo e(mb_strimwidth($fp['title'], 0, 62, '…', 'UTF-8')); ?></a>
+<?php endforeach; ?>
+        </div>
+
+<?php endif; ?>
         <div class="footer-col">
             <h4>Get in Touch</h4>
             <p><?php echo SITE_ADDRESS; ?></p>
@@ -70,6 +77,7 @@ if (!defined('SITE_URL')) { require_once __DIR__ . '/config.php'; }
             <div class="footer-legal">
                 <a href="<?php echo SITE_URL; ?>/privacy-policy.php">Privacy Policy</a>
                 <a href="<?php echo SITE_URL; ?>/terms.php">Terms & Conditions</a>
+                <a href="<?php echo SITE_URL; ?>/sitemap.xml">Sitemap</a>
             </div>
         </div>
     </div>

@@ -19,6 +19,12 @@ include __DIR__ . '/includes/header.php';
                 education, healthcare, agriculture, finance and retail — and we stay involved
                 long after a project goes live.
             </p>
+            <p class="inline-links">
+                See what we do in <a class="text-link" href="<?php echo SITE_URL; ?>/services.php">our services</a>
+                and <a class="text-link" href="<?php echo SITE_URL; ?>/portfolio.php">recent work</a>, or
+                <a class="text-link" href="<?php echo SITE_URL; ?>/contact.php">get in touch</a>.
+                Want to join the team? Check our <a class="text-link" href="<?php echo SITE_URL; ?>/careers.php">open positions</a>.
+            </p>
         </div>
     </div>
 </section>

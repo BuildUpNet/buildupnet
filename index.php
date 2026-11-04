@@ -29,7 +29,7 @@ include __DIR__ . '/includes/header.php';
             </p>
             <div class="hero-actions">
                 <a href="#" data-open-quote class="btn btn-primary">Get a Free Quote</a>
-                <a href="portfolio.php" class="btn btn-outline">See Our Work</a>
+                <a href="<?php echo SITE_URL; ?>/portfolio.php" class="btn btn-outline">See Our Work</a>
             </div>
             <div class="hero-trust">
                 <div class="hero-trust-item">
@@ -101,7 +101,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Web Development</h3>
                 <p>Fast, responsive websites built with clean code — from business sites to e-commerce platforms.</p>
-                <a href="services.php#web-development" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('web')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal>
@@ -110,7 +110,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Android & iOS Apps</h3>
                 <p>Native mobile apps built with Kotlin and Swift — designed for App Store and Play Store approval.</p>
-                <a href="services.php#app-development" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('app')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal>
@@ -119,7 +119,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>SEO & Content</h3>
                 <p>On-page, off-page SEO and content that's written for people first — and ranks because of it.</p>
-                <a href="services.php#digital-marketing" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('seo')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal>
@@ -128,8 +128,11 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <h3>Networking & AMC</h3>
                 <p>Enterprise networking setup plus annual maintenance contracts to keep your IT running smoothly.</p>
-                <a href="services.php#networking" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                <a href="<?php echo e(serviceUrl('network')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
+        </div>
+        <div style="text-align:center; margin-top:40px;" data-reveal>
+            <a href="<?php echo SITE_URL; ?>/services.php" class="btn btn-outline">See All Services</a>
         </div>
     </div>
 </section>
@@ -207,6 +210,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
             </div>
         </div>
+        <p class="inline-links" style="text-align:center;" data-reveal>Want to know who you will be working with? <a class="text-link" href="<?php echo SITE_URL; ?>/about.php">Meet the Buildupnet team</a>.</p>
     </div>
 </section>
 
@@ -282,7 +286,7 @@ include __DIR__ . '/includes/header.php';
             <?php endif; ?>
         </div>
         <div style="text-align:center; margin-top:40px;" data-reveal>
-            <a href="portfolio.php" class="btn btn-outline">View Full Portfolio</a>
+            <a href="<?php echo SITE_URL; ?>/portfolio.php" class="btn btn-outline">View Full Portfolio</a>
         </div>
     </div>
 </section>
@@ -322,6 +326,36 @@ include __DIR__ . '/includes/header.php';
         </div>
     </div>
 </section>
+
+<!-- ===== Latest from the blog ===== -->
+<?php $homePosts = footerLatestPosts(3); if ($homePosts): ?>
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-head" data-reveal>
+            <span class="eyebrow">From the blog</span>
+            <h2>Practical guides before you decide.</h2>
+        </div>
+        <div class="blog-grid">
+            <?php foreach ($homePosts as $hp): ?>
+            <a href="<?php echo e(postUrl($hp['slug'])); ?>" class="blog-card-v2" data-reveal>
+                <div class="bcv-body">
+                    <div class="bcv-top">
+                        <span class="bcv-cat" style="<?php echo categoryChipStyle($hp['category']); ?>"><?php echo e($hp['category']); ?></span>
+                        <span class="bcv-date"><?php echo e($hp['date_display']); ?></span>
+                    </div>
+                    <h3><?php echo e($hp['title']); ?></h3>
+                    <p><?php echo e($hp['excerpt']); ?></p>
+                    <span class="bcv-link">Read article →</span>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <div style="text-align:center; margin-top:40px;" data-reveal>
+            <a href="<?php echo SITE_URL; ?>/blog.php" class="btn btn-outline">All Articles</a>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- ===== FAQ ===== -->
 <section class="section">
