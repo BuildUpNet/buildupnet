@@ -131,11 +131,17 @@ function hireFillText(string $text, array $vars): string {
     return preg_replace_callback('/\{([a-z_]+)\}/', fn($m) => $vars[$m[1]] ?? '', $text);
 }
 
-/** Letters a request may produce in its current state (the joining letter exists only once the person has joined). */
-function hireLetterAllowed(array $h, string $type): bool {
+/** True when the letter is "real" for this state: offer once approved, joining only once the person has joined. */
+function hireLetterReady(array $h, string $type): bool {
     if ($type === 'offer')   return in_array($h['status'], ['approved', 'offer_issued', 'accepted', 'joined'], true);
     if ($type === 'joining') return $h['status'] === 'joined';
     return false;
+}
+
+/** Letters this user may download: the owner can take either letter at any time (a draft copy before it is real), others only real ones. */
+function hireLetterAllowed(array $h, string $type): bool {
+    if (!in_array($type, ['offer', 'joining'], true)) return false;
+    return hireLetterReady($h, $type) || can('hiring.approve');
 }
 
 /** Builds the letter as a PDF string on the BuildUpNet letterhead. Wording comes from the letter_templates table. */

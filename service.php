@@ -56,6 +56,7 @@ $others = array_slice(array_values(array_filter(servicesList(), fn($s) => $s['sl
 // Page head
 $pageTitle       = trim((string)$svc['meta_title']) !== '' ? $svc['meta_title'] : $svc['title'];
 $pageDescription = trim((string)$svc['meta_description']) !== '' ? $svc['meta_description'] : seoTrim($intro, 155);
+$pageKeywords    = (string)($svc['keywords'] ?? '');
 $canonicalUrl    = $url;
 $breadcrumbTrail = [['Services', SITE_URL . '/services.php'], [$svc['nav_label'], null]];
 
@@ -69,6 +70,7 @@ $schemas = [
      'description' => $pageDescription, 'url' => $url, 'areaServed' => ['@type' => 'Country', 'name' => 'India'],
      'provider' => ['@id' => SITE_URL . '/#organization']],
 ];
+if ($pageKeywords !== '') $schemas[1]['keywords'] = $pageKeywords;
 if ($faqs) {
     $schemas[] = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map(fn($f) => [
         '@type' => 'Question', 'name' => $f[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f[1]]], $faqs)];

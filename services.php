@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Web Design, App Development & SEO Services | Buildupnet';
 $pageDescription = 'Website design, custom development, ecommerce, apps, SEO, social media, Google Ads and maintenance for businesses across India.';
+$pageKeywords = 'web development services, ecommerce website development, android app development, SEO services India, digital marketing services, networking AMC';
 
 include __DIR__ . '/includes/header.php';
 ?>

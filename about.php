@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'About Buildupnet | Web Design & Marketing Team, Punjab';
 $pageDescription = 'Buildupnet is a website design and digital marketing agency in Sangrur, Punjab, with 150+ projects delivered for businesses across India.';
+$pageKeywords = 'web design agency Sangrur, digital marketing agency Punjab, IT company Sangrur, Buildupnet team';
 
 include __DIR__ . '/includes/header.php';
 ?>

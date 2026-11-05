@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $msg = null; $err = null;
 
     if ($act === 'check_in') {
-        if ($rec && $rec['check_in']) $err = 'You have already checked in today.';
+        if ($cur['carry']) $err = 'Your shift from ' . date('j M', strtotime($cur['date'])) . ' is still open — please check out of it first.';
+        elseif ($rec && $rec['check_in']) $err = 'You have already checked in today.';
         elseif ($rec && $rec['status'] === 'leave') $err = 'You are marked on leave today. Ask your manager to correct it first.';
         else {
             $st = $conn->prepare("INSERT INTO attendance (user_id, att_date, status, check_in, marked_by_id) VALUES (?, ?, 'present', ?, ?)
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif (mb_strlen($reason) < 3) $err = 'Please write a short reason (for example: bank work, client visit).';
         else {
             $st = $conn->prepare("INSERT INTO attendance_breaks (user_id, att_date, out_at, kind, reason, created_by_id) VALUES (?,?,?,?,?,?)");
-            $st->bind_param('issssi', $uid, $today, $now, $kind, $reason, $uid); $st->execute();
+            $st->bind_param('issssi', $uid, $cur['date'], $now, $kind, $reason, $uid); $st->execute();
             $msg = 'Marked out at ' . substr($now, 0, 5) . ($kind === 'personal' ? ' — this time will be deducted from your working hours.' : ' — counted as office work.');
         }
     } elseif ($act === 'break_in') {
@@ -95,15 +96,16 @@ $ajaxBtn = fn($act, $label, $cls) => postButton('attendance.php', ['action' => $
 <div class="card" style="margin-bottom:24px;">
     <div class="card-header"><h2>Today — <?php echo clean(date('l, j F Y')); ?></h2><span class="td-muted" id="liveClock" data-secs="<?php echo $nowSecs; ?>"><?php echo date('H:i'); ?></span></div>
     <div class="card-body">
+        <?php if ($cur['carry']): ?><div class="out-banner lunch"><div><b>Your shift from <?php echo clean(date('l, j M', strtotime($cur['date']))); ?> is still open</b> (checked in at <?php echo attHm($rec['check_in']); ?>). Check out below when you finish.</div></div><?php endif; ?>
         <p class="td-muted" style="margin:0 0 14px;">Your timing: <b><?php echo attHm($sched['work_start']); ?> – <?php echo attHm($sched['work_end']); ?></b> · Lunch <b><?php echo attHm($sched['lunch_start']); ?> – <?php echo attHm($sched['lunch_end']); ?></b> · Grace <?php echo (int)$sched['grace_minutes']; ?> min</p>
 
         <?php if ($state === 'break' && $open): ?>
             <div class="out-banner <?php echo $open['kind']; ?>">
-                <div><b>You are marked OUT</b> since <?php echo attHm($open['out_at']); ?> — <span class="timer" data-elapsed="<?php echo max(0, $nowSecs - attMin($open['out_at']) * 60); ?>">…</span>
+                <div><b>You are marked OUT</b> since <?php echo attHm($open['out_at']); ?> — <span class="timer" data-elapsed="<?php echo attElapsed($rec, $open['out_at']); ?>">…</span>
                     <div class="td-muted"><?php echo clean((string)$open['reason']); ?> · <?php echo $open['kind'] === 'personal' ? 'time is deducted from working hours' : 'counted as office work'; ?></div></div>
             </div>
         <?php elseif ($state === 'lunch'): ?>
-            <div class="out-banner lunch"><div><b>On lunch</b> since <?php echo attHm($rec['lunch_out']); ?> — <span class="timer" data-elapsed="<?php echo max(0, $nowSecs - attMin($rec['lunch_out']) * 60); ?>">…</span></div></div>
+            <div class="out-banner lunch"><div><b>On lunch</b> since <?php echo attHm($rec['lunch_out']); ?> — <span class="timer" data-elapsed="<?php echo attElapsed($rec, $rec['lunch_out']); ?>">…</span></div></div>
         <?php endif; ?>
 
         <div class="punch-row">
@@ -133,7 +135,7 @@ $ajaxBtn = fn($act, $label, $cls) => postButton('attendance.php', ['action' => $
             <div><dt>Check in</dt><dd><?php echo attHm($rec['check_in'] ?? null); ?><?php $l = $rec ? attLate($rec, $sched) : 0; echo $l ? ' <span class="abadge abadge-red">' . $l . ' min late</span>' : ''; ?></dd></div>
             <div><dt>Lunch</dt><dd><?php echo attHm($rec['lunch_out'] ?? null); ?> – <?php echo attHm($rec['lunch_in'] ?? null); ?></dd></div>
             <div><dt>Out today</dt><dd><?php echo clean(attBreakText($todayBreaks['count'] ? $todayBreaks : null)); ?></dd></div>
-            <div><dt>Check out</dt><dd><?php echo attHm($rec['check_out'] ?? null); ?></dd></div>
+            <div><dt>Check out</dt><dd><?php echo clean(attOutText($rec)); ?></dd></div>
             <div><dt>Status</dt><dd><?php echo $rec ? clean(ATT_STATUS[$rec['status']][0] ?? $rec['status']) : 'Not checked in'; ?></dd></div>
         </dl>
 
@@ -141,7 +143,7 @@ $ajaxBtn = fn($act, $label, $cls) => postButton('attendance.php', ['action' => $
         <div style="overflow-x:auto;margin-top:12px;"><table class="admin-table table-cards"><thead><tr><th>Out</th><th>Back</th><th>Time</th><th>Type</th><th>Reason</th></tr></thead><tbody>
         <?php foreach ($todayBreaks['rows'] as $b): ?>
             <tr><td data-label="Out"><?php echo attHm($b['out_at']); ?></td><td data-label="Back"><?php echo $b['in_at'] ? attHm($b['in_at']) : '<span class="abadge abadge-orange">still out</span>'; ?></td>
-                <td data-label="Time"><?php echo $b['in_at'] ? attDur(attMin($b['in_at']) - attMin($b['out_at'])) : '—'; ?></td>
+                <td data-label="Time"><?php echo $b['in_at'] ? attDur(attNorm(attMin($b['in_at']), attMin($b['out_at'])) - attMin($b['out_at'])) : '—'; ?></td>
                 <td data-label="Type"><span class="abadge <?php echo $b['kind'] === 'office' ? 'abadge-blue' : 'abadge-grey'; ?>"><?php echo $b['kind'] === 'office' ? 'Office work' : 'Personal'; ?></span></td>
                 <td data-label="Reason" class="td-muted"><?php echo clean((string)$b['reason']); ?></td></tr>
         <?php endforeach; ?>
@@ -172,7 +174,7 @@ $ajaxBtn = fn($act, $label, $cls) => postButton('attendance.php', ['action' => $
                     <td data-label="Status"><span class="abadge <?php echo $d['class']; ?>"><?php echo clean($d['label']); ?></span><?php echo $d['late'] ? ' <span class="td-muted">' . $d['late'] . 'm late</span>' : ''; ?></td>
                     <td data-label="In"><?php echo attHm($r['check_in'] ?? null); ?></td>
                     <td data-label="Lunch"><?php echo attHm($r['lunch_out'] ?? null); ?> – <?php echo attHm($r['lunch_in'] ?? null); ?></td>
-                    <td data-label="Out"><?php echo attHm($r['check_out'] ?? null); ?></td>
+                    <td data-label="Out"><?php echo clean(attOutText($r)); ?></td>
                     <td data-label="Went out" class="td-muted"><?php echo clean(attBreakText($d['br'])); ?></td>
                     <td data-label="Worked"><?php echo attDur($d['worked']); ?></td>
                     <td data-label="Note" class="td-muted"><?php echo clean((string)($r['note'] ?? ($d['holiday'] ?? ''))); ?></td>

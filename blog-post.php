@@ -36,6 +36,7 @@ if (!$post) {
 $pageTitle       = $post['meta_title'] !== '' ? $post['meta_title']
                  : (mb_strlen($post['title']) <= 46 ? $post['title'] . ' | Buildupnet' : $post['title']);          // header.php escapes it
 $pageDescription = $post['meta_desc'] !== '' ? $post['meta_desc'] : $post['excerpt'];
+$pageKeywords    = $post['keyword'];
 if ($post['noindex']) $pageRobots = 'noindex, follow';
 $pageImage       = !empty($post['thumbnail']) ? SITE_URL . '/' . ltrim($post['thumbnail'], '/') : OG_IMAGE_DEFAULT;
 $pageType        = 'article';

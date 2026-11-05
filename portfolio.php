@@ -8,6 +8,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle       = 'Our Work: Websites Delivered Across India | Buildupnet';
 $pageDescription = 'Browse real, live websites delivered by Buildupnet across travel, education, logistics, agriculture, healthcare and professional services.';
+$pageKeywords = 'website portfolio, web design projects India, Buildupnet work, live websites';
 
 // DB connection
 $items = dbRows("SELECT * FROM portfolio_items WHERE status = 'active' ORDER BY sort_order ASC, id ASC");

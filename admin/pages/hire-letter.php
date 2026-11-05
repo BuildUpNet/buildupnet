@@ -16,8 +16,9 @@ if (!$h || !in_array($type, ['offer', 'joining'], true) || !hireLetterAllowed($h
 try { $pdf = hireLetterPdf($h, $type); }
 catch (Throwable $e) { error_log('letter failed: ' . $e->getMessage()); http_response_code(500); exit('Could not create the letter. Check that upgrade-hiring.sql was run.'); }
 
-hireLog($id, 'letter_downloaded', ucfirst($type) . ' letter downloaded.');
-$name = ($type === 'offer' ? 'Offer-Letter-' : 'Joining-Letter-') . trim(preg_replace('/[^A-Za-z0-9]+/', '-', $h['full_name']), '-') . '.pdf';
+$draft = !hireLetterReady($h, $type);     // owner took the letter early: file name says DRAFT so it is not sent by mistake
+hireLog($id, 'letter_downloaded', ucfirst($type) . ' letter downloaded' . ($draft ? ' as a draft (not yet issued).' : '.'));
+$name = ($draft ? 'DRAFT-' : '') . ($type === 'offer' ? 'Offer-Letter-' : 'Joining-Letter-') . trim(preg_replace('/[^A-Za-z0-9]+/', '-', $h['full_name']), '-') . '.pdf';
 while (ob_get_level() > 0) ob_end_clean();
 header('Content-Type: application/pdf');
 header('Content-Disposition: attachment; filename="' . $name . '"');

@@ -59,9 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         $m = fn($k) => attMin($t[$k]);
         if (in_array($status, ['present', 'half_day'], true) && $t['check_in'] === null) $errors[] = 'Check-in time is needed for present / half day.';
-        if ($t['check_out'] !== null && $t['check_in'] !== null && $m('check_out') <= $m('check_in')) $errors[] = 'Check-out must be after check-in.';
+        if ($t['check_out'] !== null && $t['check_in'] !== null && $m('check_out') === $m('check_in')) $errors[] = 'Check-out cannot be the same time as check-in. (A time after midnight, like 01:00, counts as the next day.)';
         if (($t['lunch_out'] === null) !== ($t['lunch_in'] === null)) $errors[] = 'Enter both lunch times or neither.';
-        if ($t['lunch_out'] !== null && $m('lunch_in') <= $m('lunch_out')) $errors[] = 'Lunch end must be after lunch start.';
+        if ($t['lunch_out'] !== null && $m('lunch_in') === $m('lunch_out')) $errors[] = 'Lunch end cannot be the same as lunch start.';
         if (in_array($status, ['absent', 'leave'], true)) $t = array_fill_keys(array_keys($t), null);    // no times on an absent / leave day
     }
     $in = array_merge($in, $t, ['status' => $status, 'note' => $note]);
@@ -91,7 +91,7 @@ include __DIR__ . '/../includes/admin-header.php';
                     <select name="status"><?php foreach (ATT_STATUS as $k => $l): ?><option value="<?php echo $k; ?>" <?php echo ($in['status'] ?? '') === $k ? 'selected' : ''; ?>><?php echo clean($l[0]); ?></option><?php endforeach; ?></select></div>
                 <div class="form-group"><label>Note</label><input type="text" name="note" maxlength="255" value="<?php echo clean((string)($in['note'] ?? '')); ?>" placeholder="e.g. forgot to check out, client visit"></div>
                 <div class="form-group"><label>Check in</label><input type="time" name="check_in" value="<?php echo $val('check_in'); ?>"></div>
-                <div class="form-group"><label>Check out</label><input type="time" name="check_out" value="<?php echo $val('check_out'); ?>"></div>
+                <div class="form-group"><label>Check out <span style="color:var(--a-muted); font-weight:400;">(after midnight, e.g. 01:00, = next day)</span></label><input type="time" name="check_out" value="<?php echo $val('check_out'); ?>"></div>
                 <div class="form-group"><label>Lunch start</label><input type="time" name="lunch_out" value="<?php echo $val('lunch_out'); ?>"></div>
                 <div class="form-group"><label>Lunch end</label><input type="time" name="lunch_in" value="<?php echo $val('lunch_in'); ?>"></div>
             </div>
@@ -115,7 +115,7 @@ include __DIR__ . '/../includes/admin-header.php';
         <div style="overflow-x:auto;"><table class="admin-table table-cards"><thead><tr><th>Out</th><th>Back</th><th>Time</th><th>Type</th><th>Reason</th><th></th></tr></thead><tbody>
         <?php foreach ($brk['rows'] as $b): ?>
             <tr><td data-label="Out"><?php echo attHm($b['out_at']); ?></td><td data-label="Back"><?php echo $b['in_at'] ? attHm($b['in_at']) : '<span class="abadge abadge-orange">still out</span>'; ?></td>
-                <td data-label="Time"><?php echo $b['in_at'] ? attDur(attMin($b['in_at']) - attMin($b['out_at'])) : '—'; ?></td>
+                <td data-label="Time"><?php echo $b['in_at'] ? attDur(attNorm(attMin($b['in_at']), attMin($b['out_at'])) - attMin($b['out_at'])) : '—'; ?></td>
                 <td data-label="Type"><span class="abadge <?php echo $b['kind'] === 'office' ? 'abadge-blue' : 'abadge-grey'; ?>"><?php echo $b['kind'] === 'office' ? 'Office work' : 'Personal'; ?></span></td>
                 <td data-label="Reason" class="td-muted"><?php echo clean((string)$b['reason']); ?></td>
                 <td data-label=""><?php echo postButton('attendance-edit.php?user=' . $uid . '&date=' . $date, ['action' => 'break_delete', 'break_id' => $b['id'], 'user' => $uid, 'date' => $date], 'Delete', 'abtn abtn-danger abtn-sm', 'Delete this exit?'); ?></td></tr>

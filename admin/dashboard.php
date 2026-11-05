@@ -86,14 +86,28 @@ if (can('attendance.manage')) {
 }
 $punch = fn($act, $label, $cls) => postButton('pages/attendance.php', ['action' => $act], $label, $cls, '', '', true);
 ?>
+<?php
+$hr = (int)date('G'); $greet = $hr < 12 ? 'Good morning' : ($hr < 17 ? 'Good afternoon' : 'Good evening');
+$firstName = trim(explode(' ', (string)($_SESSION['admin_name'] ?? 'there'))[0]);
+$stateMap = ['in' => ['Not checked in', 'grey'], 'working' => ['Working', 'green'], 'lunch' => ['At lunch', 'blue'], 'break' => ['Out of office', 'orange'], 'done' => ['Day complete', 'green']];
+[$stLabel, $stCls] = $stateMap[$attState] ?? ['—', 'grey'];
+?>
+<div class="dash-hero">
+    <div><h2><?php echo clean($greet . ', ' . $firstName); ?> 👋</h2><p><?php echo clean(date('l, j F Y')); ?> · <?php echo clean(ROLE_LABELS[currentRole()] ?? ''); ?></p></div>
+</div>
 <div data-region="punch">
-<div class="card" style="margin-bottom:24px;">
-    <div class="card-header"><h2>My attendance today</h2><a href="pages/attendance.php" class="abtn abtn-outline abtn-sm">Details</a></div>
+<div class="card punch-card">
+    <div class="card-header"><h2>My attendance today</h2><span class="status-pill <?php echo $stCls; ?>"><?php echo clean($stLabel); ?></span><a href="pages/attendance.php" class="abtn abtn-outline abtn-sm">Details</a></div>
     <div class="card-body">
-        <p class="td-muted" style="margin:0 0 12px;">Your timing <?php echo attHm($attSched['work_start']); ?>–<?php echo attHm($attSched['work_end']); ?> · Lunch <?php echo attHm($attSched['lunch_start']); ?>–<?php echo attHm($attSched['lunch_end']); ?>
-            <?php if ($attRec && $attRec['check_in']): ?> · In <b><?php echo attHm($attRec['check_in']); ?></b><?php echo $attRec['check_out'] ? ' · Out <b>' . attHm($attRec['check_out']) . '</b>' : ''; ?><?php endif; ?></p>
+        <?php if (!empty($attCur['carry'])): ?><div class="out-banner lunch"><div><b>Your shift from <?php echo clean(date('j M', strtotime($attCur['date']))); ?> is still open</b> — check out when you finish.</div></div><?php endif; ?>
+        <div class="punch-times">
+            <div><small>Your timing</small><b><?php echo attHm($attSched['work_start']); ?> – <?php echo attHm($attSched['work_end']); ?></b></div>
+            <div><small>Lunch</small><b><?php echo attHm($attSched['lunch_start']); ?> – <?php echo attHm($attSched['lunch_end']); ?></b></div>
+            <div><small>Checked in</small><b><?php echo $attRec && $attRec['check_in'] ? attHm($attRec['check_in']) : '—'; ?></b></div>
+            <div><small>Checked out</small><b><?php echo clean(attOutText($attRec)); ?></b></div>
+        </div>
         <?php if ($attState === 'break' && $attOpen): ?>
-            <div class="out-banner <?php echo clean($attOpen['kind']); ?>"><div><b>You are marked OUT</b> since <?php echo attHm($attOpen['out_at']); ?> — <span class="timer" data-elapsed="<?php echo max(0, $nowSecs - attMin($attOpen['out_at']) * 60); ?>">…</span><div class="td-muted"><?php echo clean((string)$attOpen['reason']); ?></div></div></div>
+            <div class="out-banner <?php echo clean($attOpen['kind']); ?>"><div><b>You are marked OUT</b> since <?php echo attHm($attOpen['out_at']); ?> — <span class="timer" data-elapsed="<?php echo attElapsed($attRec, $attOpen['out_at']); ?>">…</span><div class="td-muted"><?php echo clean((string)$attOpen['reason']); ?></div></div></div>
         <?php endif; ?>
         <div class="punch-row">
             <?php if ($attState === 'in')      echo $punch('check_in', 'Check in', 'abtn abtn-primary punch'); ?>
@@ -102,7 +116,7 @@ $punch = fn($act, $label, $cls) => postButton('pages/attendance.php', ['action' 
             <?php if ($attState === 'break')   echo $punch('break_in', "I'm back", 'abtn abtn-primary punch'); ?>
             <?php if ($attState === 'done'):   ?><span class="abadge abadge-green">Day complete</span><?php endif; ?>
         </div>
-        <?php if ($teamNow): ?><p class="td-muted" style="margin:16px 0 0;">Team today: <b><?php echo $teamNow['P']; ?></b> present · <b><?php echo $teamNow['A']; ?></b> absent · <b><?php echo $teamNow['L']; ?></b> on leave · <b><?php echo $teamNow['late']; ?></b> late<?php echo $teamNow['out'] ? ' · <b>' . $teamNow['out'] . '</b> out right now' : ''; ?> — <a href="pages/attendance-manage.php" style="color:var(--a-blue);">Team attendance</a></p><?php endif; ?>
+        <?php if ($teamNow): ?><div class="team-chips"><span class="tc green"><b><?php echo $teamNow['P']; ?></b> present</span><span class="tc red"><b><?php echo $teamNow['A']; ?></b> absent</span><span class="tc blue"><b><?php echo $teamNow['L']; ?></b> on leave</span><span class="tc orange"><b><?php echo $teamNow['late']; ?></b> late</span><span class="tc grey"><b><?php echo $teamNow['out']; ?></b> out now</span></div><?php endif; ?>
     </div>
 </div>
 </div>
@@ -200,7 +214,7 @@ $punch = fn($act, $label, $cls) => postButton('pages/attendance.php', ['action' 
 
 <div class="card" style="margin-top:24px;">
     <div class="card-header"><h2>Quick Actions</h2></div>
-    <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="card-body quick-actions">
         <?php if (can('projects.create')): ?><a href="pages/project-edit.php" class="abtn abtn-primary">+ New Project</a><?php endif; ?>
         <?php if (can('content')): ?><a href="pages/post-edit.php" class="abtn abtn-blue">+ New Blog Post</a><a href="pages/recent-work-edit.php" class="abtn abtn-blue">+ Add Portfolio Item</a><?php endif; ?>
         <?php if (can('hiring.manage')): ?><a href="pages/hire-edit.php" class="abtn abtn-blue">+ Hire a Person</a><?php endif; ?>

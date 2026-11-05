@@ -191,8 +191,8 @@ include __DIR__ . '/../includes/admin-header.php';
     <div class="btn-group">
         <a href="hires.php" class="abtn abtn-outline abtn-sm">← All hires</a>
         <?php if (hireEditable($h)): ?><a href="hire-edit.php?id=<?php echo $id; ?>" class="abtn abtn-outline abtn-sm">Edit</a><?php endif; ?>
-        <?php if (hireLetterAllowed($h, 'offer')): ?><a href="<?php echo $letterUrl('offer'); ?>" class="abtn abtn-primary abtn-sm" download>Offer letter (PDF)</a><?php endif; ?>
-        <?php if (hireLetterAllowed($h, 'joining')): ?><a href="<?php echo $letterUrl('joining'); ?>" class="abtn abtn-primary abtn-sm" download>Joining letter (PDF)</a><?php endif; ?>
+        <?php if (hireLetterAllowed($h, 'offer')): ?><a href="<?php echo $letterUrl('offer'); ?>" class="abtn abtn-primary abtn-sm" download>Offer letter (PDF)<?php echo hireLetterReady($h, 'offer') ? '' : ' – draft'; ?></a><?php endif; ?>
+        <?php if (hireLetterAllowed($h, 'joining')): ?><a href="<?php echo $letterUrl('joining'); ?>" class="abtn abtn-primary abtn-sm" download>Joining letter (PDF)<?php echo hireLetterReady($h, 'joining') ? '' : ' – draft'; ?></a><?php endif; ?>
     </div>
 </div>
 

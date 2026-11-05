@@ -16,6 +16,7 @@ if (!isset($pageType)) $pageType = 'website';
 $canonical = $canonicalUrl ?? canonicalUrl();      // blog posts set their own pretty URL
 if (!isset($pageRobots)) $pageRobots = 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
 if (!isset($headExtra)) $headExtra = '';
+$pageKeywords = trim(preg_replace('/\s+/', ' ', (string)($pageKeywords ?? '')));
 ?>
 <!DOCTYPE html>
 <html lang="en-IN">
@@ -24,7 +25,8 @@ if (!isset($headExtra)) $headExtra = '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars(seoTrim($pageTitle, 60)); ?></title>
     <meta name="description" content="<?php echo htmlspecialchars(seoTrim($pageDescription, 158, '…')); ?>">
-    <meta name="author" content="<?php echo SITE_NAME; ?>">
+<?php if ($pageKeywords !== ''): ?>    <meta name="keywords" content="<?php echo htmlspecialchars(mb_substr($pageKeywords, 0, 300)); ?>">
+<?php endif; ?>    <meta name="author" content="<?php echo SITE_NAME; ?>">
 <?php if (GOOGLE_SITE_VERIFICATION !== ''): ?>    <meta name="google-site-verification" content="<?php echo htmlspecialchars(GOOGLE_SITE_VERIFICATION); ?>">
 <?php endif; if (BING_SITE_VERIFICATION !== ''): ?>    <meta name="msvalidate.01" content="<?php echo htmlspecialchars(BING_SITE_VERIFICATION); ?>">
 <?php endif; ?>

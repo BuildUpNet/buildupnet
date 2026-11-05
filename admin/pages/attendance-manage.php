@@ -94,7 +94,7 @@ include __DIR__ . '/../includes/admin-header.php';
                     <td data-label="Status"><span class="abadge <?php echo $d['class']; ?>"><?php echo clean($d['label']); ?></span><?php echo $d['late'] ? ' <span class="td-muted">' . $d['late'] . 'm late</span>' : ''; ?><?php echo $d['holiday'] ? ' <span class="td-muted">' . clean($d['holiday']) . '</span>' : ''; ?><?php echo attLiveChip($d, $today); ?></td>
                     <td data-label="In"><?php echo attHm($rec['check_in'] ?? null); ?></td>
                     <td data-label="Lunch"><?php echo attHm($rec['lunch_out'] ?? null); ?> – <?php echo attHm($rec['lunch_in'] ?? null); ?></td>
-                    <td data-label="Out"><?php echo attHm($rec['check_out'] ?? null); ?></td>
+                    <td data-label="Out"><?php echo clean(attOutText($rec)); ?></td>
                     <td data-label="Went out" class="td-muted"><?php echo clean(attBreakText($d['br'])); ?></td>
                     <td data-label="Worked"><?php echo attDur($d['worked']); ?></td>
                     <td data-label=""><?php if (attCanManage($u['role'])): ?><a class="abtn abtn-outline abtn-sm" href="attendance-edit.php?user=<?php echo (int)$u['id']; ?>&date=<?php echo $date; ?>">Edit / Mark</a><?php endif; ?></td>
@@ -152,7 +152,7 @@ include __DIR__ . '/../includes/admin-header.php';
                     <td data-label="Status"><span class="abadge <?php echo $d['class']; ?>"><?php echo clean($d['label']); ?></span><?php echo $d['late'] ? ' <span class="td-muted">' . $d['late'] . 'm late</span>' : ''; ?></td>
                     <td data-label="In"><?php echo attHm($r['check_in'] ?? null); ?></td>
                     <td data-label="Lunch"><?php echo attHm($r['lunch_out'] ?? null); ?> – <?php echo attHm($r['lunch_in'] ?? null); ?></td>
-                    <td data-label="Out"><?php echo attHm($r['check_out'] ?? null); ?></td>
+                    <td data-label="Out"><?php echo clean(attOutText($r)); ?></td>
                     <td data-label="Went out" class="td-muted"><?php echo clean(attBreakText($d['br'])); ?></td>
                     <td data-label="Worked"><?php echo attDur($d['worked']); ?></td>
                     <td data-label="Note" class="td-muted"><?php echo clean((string)($r['note'] ?? ($d['holiday'] ?? ''))); ?></td>

@@ -22,17 +22,18 @@ try {
     header('Location: service-pages.php'); exit;
 }
 
+$hasKw = (bool)$conn->query("SHOW COLUMNS FROM service_pages LIKE 'keywords'")->num_rows;   // false until upgrade-service-keywords.sql is run
 $pageTitle = $id ? 'Edit Service Page' : 'Add Service Page';
 $f = [   // values shown in the form
     'slug' => $item['slug'] ?? '', 'nav_label' => $item['nav_label'] ?? '', 'title' => $item['title'] ?? '',
     'meta_title' => $item['meta_title'] ?? '', 'meta_description' => $item['meta_description'] ?? '', 'intro' => $item['intro'] ?? '',
     'deliverables' => $item['deliverables'] ?? '', 'approach' => $item['approach'] ?? '', 'faq' => $item['faq'] ?? '',
-    'blog_category' => $item['blog_category'] ?? '', 'work_keywords' => $item['work_keywords'] ?? '', 'status' => $item['status'] ?? 'published',
+    'keywords' => $item['keywords'] ?? '', 'blog_category' => $item['blog_category'] ?? '', 'work_keywords' => $item['work_keywords'] ?? '', 'status' => $item['status'] ?? 'published',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfCheck();
-    foreach (['nav_label','title','meta_title','meta_description','intro','deliverables','approach','faq','blog_category','work_keywords'] as $k) $f[$k] = trim((string)($_POST[$k] ?? ''));
+    foreach (['nav_label','title','meta_title','meta_description','keywords','intro','deliverables','approach','faq','blog_category','work_keywords'] as $k) $f[$k] = trim((string)($_POST[$k] ?? ''));
     if (!$id) $f['slug'] = strtolower(trim((string)($_POST['slug'] ?? '')));
     $f['status'] = ($_POST['status'] ?? '') === 'hidden' ? 'hidden' : 'published';
 
@@ -43,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($f['title'] === '' || mb_strlen($f['title']) > 160) $errors[] = 'Heading is required (160 characters at most).';
     if (mb_strlen($f['meta_title']) > 120) $errors[] = 'Google title is too long (120 characters at most).';
     if (mb_strlen($f['meta_description']) > 320) $errors[] = 'Google description is too long (320 characters at most).';
+    if (mb_strlen($f['keywords']) > 300) $errors[] = 'Keywords are too long (300 characters at most).';
     if (mb_strlen($f['work_keywords']) > 200) $errors[] = 'Work keywords are too long (200 characters at most).';
     if ($f['blog_category'] !== '' && !isset(BLOG_CATEGORIES[$f['blog_category']])) $errors[] = 'Pick a blog category from the list.';
     foreach (['intro' => 'Introduction', 'deliverables' => 'What you get', 'approach' => 'How we work', 'faq' => 'Questions'] as $k => $label) {
@@ -51,13 +53,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors) {
         try {
+            $cols = ['nav_label' => 'nav_label', 'title' => 'title', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'];
+            if ($hasKw) $cols['keywords'] = 'keywords';
+            $cols += ['intro' => 'intro', 'deliverables' => 'deliverables', 'approach' => 'approach', 'faq' => 'faq', 'blog_category' => 'blog_category', 'work_keywords' => 'work_keywords', 'status' => 'status'];
+            $vals = array_map(fn($k) => $f[$k], array_keys($cols));     // column names above come from this code only
             if ($id) {
-                $st = $conn->prepare("UPDATE service_pages SET nav_label=?, title=?, meta_title=?, meta_description=?, intro=?, deliverables=?, approach=?, faq=?, blog_category=?, work_keywords=?, status=? WHERE id=?");
-                $st->bind_param('sssssssssssi', $f['nav_label'], $f['title'], $f['meta_title'], $f['meta_description'], $f['intro'], $f['deliverables'], $f['approach'], $f['faq'], $f['blog_category'], $f['work_keywords'], $f['status'], $id);
+                $st = $conn->prepare("UPDATE service_pages SET " . implode(', ', array_map(fn($c) => "$c = ?", $cols)) . " WHERE id = ?");
+                $st->bind_param(str_repeat('s', count($vals)) . 'i', ...$vals, ...[$id]);
             } else {
                 $max = (int)($conn->query("SELECT MAX(sort_order) AS m FROM service_pages")->fetch_assoc()['m'] ?? 0) + 1;
-                $st = $conn->prepare("INSERT INTO service_pages (slug, nav_label, title, meta_title, meta_description, intro, deliverables, approach, faq, blog_category, work_keywords, sort_order, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                $st->bind_param('sssssssssssis', $f['slug'], $f['nav_label'], $f['title'], $f['meta_title'], $f['meta_description'], $f['intro'], $f['deliverables'], $f['approach'], $f['faq'], $f['blog_category'], $f['work_keywords'], $max, $f['status']);
+                $allCols = array_merge(['slug'], $cols, ['sort_order']);
+                $allVals = array_merge([$f['slug']], $vals, [$max]);
+                $st = $conn->prepare("INSERT INTO service_pages (" . implode(', ', $allCols) . ") VALUES (" . implode(',', array_fill(0, count($allCols), '?')) . ")");
+                $st->bind_param(str_repeat('s', count($allVals) - 1) . 'i', ...$allVals);
             }
             $st->execute();
             flashMessage('success', $id ? 'Service page updated.' : 'Service page added.');
@@ -148,6 +156,29 @@ include __DIR__ . '/../includes/admin-header.php';
                 <div class="form-group full-width">
                     <label>Work keywords <span style="color:var(--a-muted); font-weight:400;">(comma separated: Recent Work projects whose category contains one of these words are shown here)</span></label>
                     <input type="text" name="work_keywords" maxlength="200" placeholder="website,web design,portal" value="<?php echo clean($f['work_keywords']); ?>">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Keywords <span style="color:var(--a-muted); font-weight:400;">(comma separated, most important first)</span></label>
+                    <?php if ($hasKw): ?>
+                    <input type="text" name="keywords" maxlength="300" placeholder="website design in Punjab, web development company India" value="<?php echo clean($f['keywords']); ?>">
+                    <?php
+                        $first = trim(explode(',', $f['keywords'])[0]);
+                        if ($id && $first !== ''):
+                            $has = fn($t) => stripos($t, $first) !== false;
+                    ?>
+                    <span class="hint">First keyword "<?php echo clean($first); ?>":
+                        in heading <?php echo $has($f['title']) ? '✔' : '✘'; ?> ·
+                        in introduction <?php echo $has($f['intro']) ? '✔' : '✘'; ?> ·
+                        in Google title <?php echo $has($f['meta_title']) ? '✔' : '✘'; ?>.
+                        Use the words naturally in the text; Google mostly ignores the keywords tag itself and reads your headings and text.</span>
+                    <?php else: ?>
+                    <span class="hint">Google mostly ignores the keywords tag itself and reads your headings and text, so use the main words naturally in the heading, introduction and Google title.</span>
+                    <?php endif; ?>
+                    <?php else: ?>
+                    <input type="text" disabled placeholder="Run upgrade-service-keywords.sql to turn this on">
+                    <span class="hint">To use keywords, run <code>upgrade-service-keywords.sql</code> once in phpMyAdmin (only needed if you ran the earlier service-pages SQL).</span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group full-width">

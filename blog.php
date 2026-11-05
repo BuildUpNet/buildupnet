@@ -8,6 +8,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle       = 'Blog: Web Design, SEO & Marketing Tips | Buildupnet';
 $pageDescription = 'Practical guides on web design, SEO, digital marketing and app development from the Buildupnet team — written for business owners, not developers.';
+$pageKeywords = 'web design blog, SEO tips India, digital marketing guides, app development articles';
 
 $published = blogPosts();
 $featured  = $published[0] ?? null;

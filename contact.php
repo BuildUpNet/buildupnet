@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Contact Buildupnet | Website & App Development, Sangrur';
 $pageDescription = 'Get in touch with Buildupnet for web development, app development, SEO and digital marketing enquiries. Based in Sangrur, Punjab, serving clients across India.';
+$pageKeywords = 'contact web development company, get a website quote, IT company Sangrur Punjab';
 
 include __DIR__ . '/includes/header.php';
 ?>

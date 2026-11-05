@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Careers | Join the Buildupnet Team — Open Positions';
 $pageDescription = 'Explore open positions at Buildupnet and apply to join our web development, app development and digital marketing team in Punjab, India.';
+$pageKeywords = 'web developer jobs Sangrur, IT jobs Punjab, careers at Buildupnet';
 
 // Open positions come from the database (Admin → Job Openings)
 $jobOpenings = dbRows("SELECT id, title, type, location, description FROM job_openings WHERE status = 'active' ORDER BY created_at DESC");

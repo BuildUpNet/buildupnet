@@ -7,6 +7,7 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Website Design & Digital Marketing in India | Buildupnet';
 $pageDescription = 'Buildupnet provides website design, web development, app development, SEO, and digital marketing services across India with 150+ successful projects.';
+$pageKeywords = 'website design in Punjab, web development company India, app development, SEO services, digital marketing agency, Sangrur';
 
 // Fetch all active projects for proof strip
 $allProjects   = dbRows("SELECT title, live_url FROM portfolio_items WHERE status = 'active' AND live_url != '' ORDER BY sort_order ASC, id ASC");

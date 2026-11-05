@@ -18,6 +18,7 @@ const ATT_DERIVED = [         // shown in reports when there is no row
 const LEAVE_TYPES = ['casual' => 'Casual leave', 'sick' => 'Sick leave', 'unpaid' => 'Unpaid leave', 'other' => 'Other'];
 const BREAK_KINDS = ['personal' => 'Personal / urgent work (time is deducted)', 'office' => 'Office / client work (counted as worked)'];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ATT_MAX_SHIFT_HOURS = 18;   // a shift that began yesterday stays open for punching out this long (e.g. in 10:00, out 01:00 the next night)
 
 /** The person's schedule; a default row (defaults live in the table) is created the first time it is needed. */
 function attSchedule(int $uid): array {
@@ -48,21 +49,47 @@ function attMin(?string $t): ?int {                 // "13:30:00" -> 810
     $p = explode(':', $t); return (int)$p[0] * 60 + (int)$p[1];
 }
 function attHm(?string $t): string { return $t ? substr($t, 0, 5) : '—'; }
+/** A time after midnight counts as the next day: minutes of $t that are never before $ref. */
+function attNorm(int $t, int $ref): int { return $t < $ref ? $t + 1440 : $t; }
+/** Check-out text for tables: "01:00 (next day)" when the person stayed past midnight. */
+function attOutText(?array $rec): string {
+    if (!$rec || empty($rec['check_out'])) return '—';
+    $in = attMin($rec['check_in'] ?? null); $out = attMin($rec['check_out']);
+    return attHm($rec['check_out']) . (($in !== null && $out < $in) ? ' (next day)' : '');
+}
+/** Timestamp of a punch time of a shift that began on $rec['att_date'] at $rec['check_in'] (a time before the check-in time is the next day). */
+function attEventTs(array $rec, string $t): int {
+    $ts = strtotime($rec['att_date'] . ' ' . $t); $base = strtotime($rec['att_date'] . ' ' . $rec['check_in']);
+    return $ts < $base ? $ts + 86400 : $ts;
+}
+function attElapsed(array $rec, string $t): int { return max(0, time() - attEventTs($rec, $t)); }
+/** Yesterday's shift that is still open (checked in, not checked out, within ATT_MAX_SHIFT_HOURS): the person may still punch out of it. */
+function attOpenShift(int $uid): ?array {
+    $yday = date('Y-m-d', strtotime('-1 day'));
+    $r = dbRow("SELECT * FROM attendance WHERE user_id = ? AND att_date = ? AND check_in IS NOT NULL AND check_out IS NULL AND status <> 'leave'", 'is', [$uid, $yday]);
+    if (!$r) return null;
+    return (time() - strtotime($yday . ' ' . $r['check_in'])) <= ATT_MAX_SHIFT_HOURS * 3600 ? $r : null;
+}
 function attDur(?int $m): string { return $m === null ? '—' : intdiv($m, 60) . 'h ' . str_pad((string)($m % 60), 2, '0', STR_PAD_LEFT) . 'm'; }
 function attIsWeekOff(array $sched, string $date): bool { return in_array((string)date('w', strtotime($date)), explode(',', $sched['weekly_off']), true); }
 
 /** Minutes worked = (check-out − check-in) − lunch. Lunch is the real lunch out/in when recorded, otherwise the planned lunch. */
 function attWorked(array $rec, array $sched): ?int {
     $in = attMin($rec['check_in'] ?? null); $out = attMin($rec['check_out'] ?? null);
-    if ($in === null || $out === null || $out <= $in) return null;
+    if ($in === null || $out === null || $out === $in) return null;
+    $out = attNorm($out, $in);                       // out before in = the person stayed past midnight
     $lo = attMin($rec['lunch_out'] ?? null); $li = attMin($rec['lunch_in'] ?? null);
+    if ($lo !== null) $lo = attNorm($lo, $in);
+    if ($lo !== null && $li !== null) $li = attNorm($li, $lo);
     if ($lo !== null && $li !== null && $li > $lo) $lunch = $li - $lo;
     else { $ls = attMin($sched['lunch_start']); $le = attMin($sched['lunch_end']); $lunch = ($in <= $ls && $out >= $le) ? $le - $ls : 0; }
     return max(0, $out - $in - $lunch - (int)($rec['break_min'] ?? 0));   // personal / urgent exits are not work time
 }
 /** Minutes a full day should have (end − start − lunch). */
 function attPlanned(array $sched): int {
-    return max(0, attMin($sched['work_end']) - attMin($sched['work_start']) - (attMin($sched['lunch_end']) - attMin($sched['lunch_start'])));
+    $s = attMin($sched['work_start']); $e = attNorm(attMin($sched['work_end']), $s);                 // a night schedule may end after midnight
+    $ls = attMin($sched['lunch_start']); $le = attNorm(attMin($sched['lunch_end']), $ls);
+    return max(0, $e - $s - ($le - $ls));
 }
 /** Minutes late (0 when inside the grace time). */
 function attLate(array $rec, array $sched): int {
@@ -79,7 +106,7 @@ function attBreakMap(int $uid, string $from, string $to): array {
         $map[$d] ??= ['personal' => 0, 'office' => 0, 'open' => false, 'count' => 0, 'rows' => []];
         $map[$d]['count']++; $map[$d]['rows'][] = $b;
         if ($b['in_at'] === null) { $map[$d]['open'] = true; continue; }               // never closed: no minutes counted (a manager can fix it)
-        $m = max(0, attMin($b['in_at']) - attMin($b['out_at']));
+        $m = max(0, attNorm(attMin($b['in_at']), attMin($b['out_at'])) - attMin($b['out_at']));
         $map[$d][$b['kind'] === 'office' ? 'office' : 'personal'] += $m;
     }
     return $map;
@@ -89,11 +116,16 @@ function attBreakMap(int $uid, string $from, string $to): array {
 function attToday(int $uid): array {
     $today = date('Y-m-d');
     $rec = dbRow("SELECT * FROM attendance WHERE user_id = ? AND att_date = ?", 'is', [$uid, $today]);
-    $map = attBreakMap($uid, $today, $today)[$today] ?? ['personal' => 0, 'office' => 0, 'open' => false, 'count' => 0, 'rows' => []];
+    $date = $today; $carry = false;
+    if (!$rec || !$rec['check_in']) {                // not checked in today: maybe still inside yesterday's shift (works past midnight)
+        $open = attOpenShift($uid);
+        if ($open) { $rec = $open; $date = $open['att_date']; $carry = true; }
+    }
+    $map = attBreakMap($uid, $date, $date)[$date] ?? ['personal' => 0, 'office' => 0, 'open' => false, 'count' => 0, 'rows' => []];
     $open = null; foreach ($map['rows'] as $b) if ($b['in_at'] === null) $open = $b;
     if ($rec) $rec['break_min'] = $map['personal'];
     $state = !$rec || !$rec['check_in'] ? 'in' : ($rec['check_out'] ? 'done' : ($open ? 'break' : ($rec['lunch_out'] && !$rec['lunch_in'] ? 'lunch' : 'working')));
-    return ['rec' => $rec, 'state' => $state, 'open' => $open, 'breaks' => $map, 'date' => $today];
+    return ['rec' => $rec, 'state' => $state, 'open' => $open, 'breaks' => $map, 'date' => $date, 'carry' => $carry];
 }
 
 /**
