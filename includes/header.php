@@ -113,7 +113,7 @@ $pageKeywords = trim(preg_replace('/\s+/', ' ', (string)($pageKeywords ?? '')));
     if (empty($orgSchema['@graph'][0]['employee'])) unset($orgSchema['@graph'][0]['employee']);
     // The services come from the service_pages table (Admin -> Service Pages), so this list is always current.
     $offerItems = [];
-    foreach (servicesList(true) as $sv) $offerItems[] = ['@type' => 'Service', 'name' => $sv['label'], 'url' => $sv['url']];   // plain Service items: no 'Offer', so Google never treats a service as a shop product
+    foreach (servicesList(true) as $sv) $offerItems[] = ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $sv['label'], 'url' => $sv['url']]];
     if ($offerItems) $orgSchema['@graph'][0]['hasOfferCatalog'] = ['@type' => 'OfferCatalog', 'name' => SITE_NAME . ' services', 'itemListElement' => $offerItems];
 
     // ===== Breadcrumbs for every inner page (blog posts add their own, home has one in index.php) =====

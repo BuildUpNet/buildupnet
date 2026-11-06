@@ -69,6 +69,11 @@ $schemas = [
     ['@context' => 'https://schema.org', '@type' => 'Service', 'name' => $svc['nav_label'], 'serviceType' => $svc['nav_label'],
      'description' => $pageDescription, 'url' => $url, 'areaServed' => ['@type' => 'Country', 'name' => 'India'],
      'provider' => ['@id' => SITE_URL . '/#organization']],
+    // WebPage with speakable parts and a modified date: voice assistants and AI tools can read the key answer aloud / quote it, and see it is current.
+    ['@context' => 'https://schema.org', '@type' => 'WebPage', '@id' => $url . '#webpage', 'url' => $url, 'name' => $pageTitle, 'inLanguage' => 'en-IN',
+     'isPartOf' => ['@id' => SITE_URL . '/#website'], 'about' => ['@type' => 'Service', 'name' => $svc['nav_label']],
+     'dateModified' => date('c', strtotime((string)($svc['updated_at'] ?: ($svc['created_at'] ?? 'now')))),
+     'speakable' => ['@type' => 'SpeakableSpecification', 'cssSelector' => ['h1', '.lead', '.faq-answer']]],
 ];
 if ($pageKeywords !== '') $schemas[1]['keywords'] = $pageKeywords;
 if ($faqs) {
@@ -93,6 +98,7 @@ include __DIR__ . '/includes/header.php';
                 <a href="<?php echo SITE_URL; ?>/contact.php" class="btn btn-outline">Contact Us</a>
             </div>
             <p class="inline-links"><a class="text-link" href="<?php echo SITE_URL; ?>/services.php">All our services</a> · <a class="text-link" href="<?php echo SITE_URL; ?>/portfolio.php">See our work</a></p>
+            <p class="td-updated">Last updated: <time datetime="<?php echo e(date('Y-m-d', strtotime((string)($svc['updated_at'] ?: ($svc['created_at'] ?? 'now'))))); ?>"><?php echo e(date('j F Y', strtotime((string)($svc['updated_at'] ?: ($svc['created_at'] ?? 'now'))))); ?></time></p>
         </div>
     </div>
 </section>

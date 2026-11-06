@@ -7,7 +7,39 @@ require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Website Design & Digital Marketing in India | Buildupnet';
 $pageDescription = 'Buildupnet provides website design, web development, app development, SEO, and digital marketing services across India with 150+ successful projects.';
-$pageKeywords = 'website design in Punjab, web development company India, app development, SEO services, digital marketing agency, Sangrur';
+$pageKeywords = 'website design in Punjab, web development company India, app development, SEO services, AEO, GEO, answer engine optimization, generative engine optimization, digital marketing agency, Sangrur';
+
+// FAQ list: the visible FAQ section and the FAQPage schema are both built from this one list, so they always match word for word.
+$homeFaqs = [
+    [
+        'q' => 'What services does Buildupnet offer?',
+        'a' => 'We offer custom website design and development, Android and iOS app development, SEO, content marketing, social media and Meta/Google Ads management, plus networking setup and annual maintenance contracts.'
+    ],
+    [
+        'q' => 'How much does a website cost?',
+        'a' => 'It depends on the number of pages, features and complexity. We provide a clear, itemized quote after a short discovery call — no hidden costs added later.'
+    ],
+    [
+        'q' => 'How long does a typical project take?',
+        'a' => 'A standard business website typically takes 2–4 weeks. Larger projects like e-commerce stores or custom portals usually take 4–8 weeks, with a milestone plan shared in advance.'
+    ],
+    [
+        'q' => 'Do you provide support after the website is live?',
+        'a' => 'Yes. We offer ongoing maintenance plans covering updates, security patches, performance checks and content changes, so your site stays reliable long after launch.'
+    ],
+    [
+        'q' => 'Which industries have you worked with?',
+        'a' => "We've delivered projects across travel & tourism, education, agriculture, healthcare, finance, retail, real estate and professional services throughout India."
+    ],
+    [
+        'q' => 'What are AEO and GEO, and do you offer them?',
+        'a' => 'AEO (Answer Engine Optimization) makes your pages easy for Google, voice assistants and AI summaries to quote as the direct answer. GEO (Generative Engine Optimization) helps AI tools such as ChatGPT, Gemini and Perplexity find, understand and mention your business. Yes, Buildupnet offers both, together with SEO, from Sangrur, Punjab.'
+    ],
+    [
+        'q' => 'Where is Buildupnet based and who do you work with?',
+        'a' => 'Buildupnet is based in Sangrur, Punjab, India. We work with businesses, schools, clinics and institutions in Punjab and across India, in person, by phone and online.'
+    ],
+];
 
 // Fetch all active projects for proof strip
 $allProjects   = dbRows("SELECT title, live_url FROM portfolio_items WHERE status = 'active' AND live_url != '' ORDER BY sort_order ASC, id ASC");
@@ -358,6 +390,25 @@ include __DIR__ . '/includes/header.php';
 </section>
 <?php endif; ?>
 
+<!-- ===== At a glance: plain facts (clear for people, search engines and AI answer tools) ===== -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-head" data-reveal>
+            <span class="eyebrow">At a glance</span>
+            <h2>Buildupnet in one minute.</h2>
+        </div>
+        <div class="glance" data-reveal>
+            <p><strong><?php echo e(SITE_NAME); ?></strong> is a web design, app development, SEO and IT services company in <strong>Sangrur, Punjab, India</strong>, working with businesses across India since <?php echo e((string)SITE_FOUNDING_YEAR); ?>.</p>
+            <ul class="glance-list">
+                <li><b>Services:</b> <?php $gl = []; foreach (servicesList() as $sv) $gl[] = '<a class="text-link" href="' . e($sv['url']) . '">' . e($sv['label']) . '</a>'; echo implode(', ', $gl); ?>.</li>
+                <li><b>Address:</b> Bhalla Street, Outside Sunami Gate, Sangrur, Punjab 148001.</li>
+                <li><b>Hours:</b> Monday to Friday, 9:00 AM to 6:00 PM (IST).</li>
+                <li><b>Contact:</b> <a class="text-link" href="tel:<?php echo e(preg_replace('/[^+0-9]/', '', SITE_PHONE)); ?>"><?php echo e(SITE_PHONE); ?></a> · <a class="text-link" href="mailto:<?php echo e(SITE_EMAIL); ?>"><?php echo e(SITE_EMAIL); ?></a></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
 <!-- ===== FAQ ===== -->
 <section class="section">
     <div class="container">
@@ -366,51 +417,17 @@ include __DIR__ . '/includes/header.php';
             <h2>Things people usually ask before starting.</h2>
         </div>
         <div class="faq-list">
+            <?php foreach ($homeFaqs as $item): ?>
             <div class="faq-item">
                 <button class="faq-question">
-                    What services does Buildupnet offer?
+                    <?php echo e($item['q']); ?>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
                 <div class="faq-answer">
-                    <p>We offer custom website design and development, Android and iOS app development, SEO, content marketing, social media and Meta/Google Ads management, plus networking setup and annual maintenance contracts.</p>
+                    <p><?php echo e($item['a']); ?></p>
                 </div>
             </div>
-            <div class="faq-item">
-                <button class="faq-question">
-                    How much does a website cost?
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
-                <div class="faq-answer">
-                    <p>It depends on the number of pages, features and complexity. We provide a clear, itemized quote after a short discovery call — no hidden costs added later.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <button class="faq-question">
-                    How long does a typical project take?
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
-                <div class="faq-answer">
-                    <p>A standard business website typically takes 2–4 weeks. Larger projects like e-commerce stores or custom portals usually take 4–8 weeks, with a milestone plan shared in advance.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <button class="faq-question">
-                    Do you provide support after the website is live?
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
-                <div class="faq-answer">
-                    <p>Yes. We offer ongoing maintenance plans covering updates, security patches, performance checks and content changes, so your site stays reliable long after launch.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <button class="faq-question">
-                    Which industries have you worked with?
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
-                <div class="faq-answer">
-                    <p>We've delivered projects across travel & tourism, education, agriculture, healthcare, finance, retail, real estate and professional services throughout India.</p>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>
@@ -422,28 +439,7 @@ include __DIR__ . '/includes/header.php';
 // (Google AI Overviews, ChatGPT, Perplexity, etc.) frequently lift
 // question/answer pairs directly from FAQPage structured data when
 // responding to "how much does a website cost", "do you offer X", etc.
-$homeFaqs = [
-    [
-        'q' => 'What services does Buildupnet offer?',
-        'a' => 'We offer custom website design and development, Android and iOS app development, SEO, content marketing, social media and Meta/Google Ads management, plus networking setup and annual maintenance contracts.'
-    ],
-    [
-        'q' => 'How much does a website cost?',
-        'a' => 'It depends on the number of pages, features and complexity. We provide a clear, itemized quote after a short discovery call — no hidden costs added later.'
-    ],
-    [
-        'q' => 'How long does a typical project take?',
-        'a' => 'A standard business website typically takes 2–4 weeks. Larger projects like e-commerce stores or custom portals usually take 4–8 weeks, with a milestone plan shared in advance.'
-    ],
-    [
-        'q' => 'Do you provide support after the website is live?',
-        'a' => 'Yes. We offer ongoing maintenance plans covering updates, security patches, performance checks and content changes, so your site stays reliable long after launch.'
-    ],
-    [
-        'q' => 'Which industries have you worked with?',
-        'a' => "We've delivered projects across travel & tourism, education, agriculture, healthcare, finance, retail, real estate and professional services throughout India."
-    ],
-];
+
 
 $faqEntities = [];
 foreach ($homeFaqs as $item) {

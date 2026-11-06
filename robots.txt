@@ -1,7 +1,28 @@
 # robots.txt for https://buildupnet.com
+# Everyone, including search engines and AI answer tools, may read the public site.
 User-agent: *
 Allow: /
 Disallow: /forms/
+
+# AI search and answer crawlers are welcome (so your business can be found and named in AI answers: GEO).
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: Bingbot
+Allow: /
 
 # The admin area and internal folders are protected by login / server rules and send noindex headers.
 
