@@ -994,3 +994,89 @@ h1, h2, h3, p, li { overflow-wrap: anywhere; }
 .inline-links { margin-top: 16px; }
 .inline-links a, .text-link { color: var(--color-ink); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 768px) { .breadcrumb .container { padding-top: 8px; padding-bottom: 8px; } }
+
+/* ==========================================================
+   v17 — Brighter look ("less dull"): richer colour, warm accent, depth.
+   Pure CSS layer: nothing here changes content or URLs. Text colours keep AA contrast.
+   ========================================================== */
+:root {
+  --color-bg:       #F3F9FD;
+  --color-bg-alt:   #E4F2FB;
+  --color-warm:     #FF7A45;   /* warm highlight (blush) used sparingly */
+  --color-warm-bg:  #FFF1EA;
+  --grad-brand:     linear-gradient(135deg, #0a6a9f 0%, #1383bd 55%, #22a0dc 100%);
+  --grad-dark:      linear-gradient(135deg, #003b52 0%, #005470 55%, #0a6f94 100%);
+  --shadow-color:   0 10px 28px rgba(19,131,189,0.18);
+}
+body { background: var(--color-bg); }
+
+/* Buttons: strong gradient, white text (better contrast), soft glow */
+.btn { border-radius: 10px; }
+.btn-primary { background: var(--grad-brand); color: #fff; box-shadow: 0 6px 18px rgba(19,131,189,0.35); }
+.btn-primary:hover { background: var(--grad-brand); filter: brightness(1.08); box-shadow: 0 10px 26px rgba(19,131,189,0.45); }
+.btn-outline { background: #fff; border-color: #9fd2ee; color: #005470; }
+.btn-outline:hover { border-color: #1383bd; background: #EAF6FC; }
+.btn-light { background: #fff; color: #005470; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+.btn-light:hover { background: #fff; filter: brightness(0.97); }
+
+/* Eyebrow labels become small coloured pills */
+.eyebrow { background: rgba(40,169,228,0.13); color: #00698f; padding: 5px 12px; border-radius: 999px; letter-spacing: 0.1em; font-weight: 600; }
+.section-dark .eyebrow, .cta-band .eyebrow { background: rgba(255,255,255,0.14); color: #bfe8ff; }
+
+/* Hero: colour glows + gradient word */
+.hero { position: relative; background:
+    radial-gradient(520px 320px at 8% 10%, rgba(40,169,228,0.22), transparent 70%),
+    radial-gradient(460px 300px at 92% 85%, rgba(255,122,69,0.16), transparent 70%),
+    linear-gradient(180deg, #EEF8FE 0%, #DDEFFA 100%); }
+.hero h1 .highlight { background: linear-gradient(90deg, #0a8fd0, #28A9E4 60%, #5ec8f5); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+.hero-trust-item { background: rgba(255,255,255,0.75); padding: 8px 14px; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,84,112,0.08); }
+.hero-trust-item span { color: #36596a; }
+.hero-visual { background: var(--grad-dark); box-shadow: 0 24px 60px rgba(0,84,112,0.35); border: 1px solid rgba(255,255,255,0.08); }
+.hero-visual-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; color: rgba(255,255,255,0.6); }
+.hero-visual-body .comment { color: #86a6bd; }
+
+/* Proof strip + stats + CTA: richer dark gradient */
+.proof-strip, .section-dark { background: var(--grad-dark); }
+.cta-band { background: var(--grad-dark); position: relative; overflow: hidden; }
+.cta-band::after { content: ""; position: absolute; right: -80px; top: -80px; width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle, rgba(40,169,228,0.35), transparent 70%); pointer-events: none; }
+.cta-band-inner { position: relative; z-index: 1; }
+.stat-number { background: linear-gradient(180deg, #7fd6ff, #28A9E4); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+
+/* Section rhythm: alternate sections get a gentle tint instead of flat grey-blue */
+.section-alt { background: linear-gradient(180deg, #E4F2FB 0%, #EEF7FC 100%); }
+
+/* Cards: colour accent bar, tinted icon tile, lift on hover */
+.service-card { position: relative; border: 1px solid #d3e8f4; border-radius: 16px; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+.service-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--grad-brand); }
+.service-card:nth-child(2)::before { background: linear-gradient(90deg, #ff7a45, #ffb07a); }
+.service-card:nth-child(3)::before { background: linear-gradient(90deg, #22a06b, #6bcb91); }
+.service-card:nth-child(4)::before { background: linear-gradient(90deg, #6c5ce7, #a29bfe); }
+.service-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-color); border-color: #9fd2ee; }
+.feature-icon { background: linear-gradient(135deg, #DDF1FC, #bfe3f7); color: #0a6a9f; border-radius: 12px; }
+.portfolio-card, .testimonial-card { border-radius: 16px; border-color: #d3e8f4; transition: transform .25s ease, box-shadow .25s ease; }
+.portfolio-card:hover, .testimonial-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-color); }
+.portfolio-thumb { background: linear-gradient(135deg, #cfe9f8, #eaf6fc 60%, #ffe9de); }
+.portfolio-info .tag { color: #0a6a9f; background: #EAF6FC; padding: 2px 9px; border-radius: 999px; display: inline-block; }
+
+/* Process: numbered circles */
+.process-num { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--grad-brand); color: #fff; font-weight: 700; box-shadow: 0 6px 14px rgba(19,131,189,0.3); }
+.process-step { align-items: flex-start; }
+
+/* Header: crisp white bar with a soft shadow and a brand-colour underline on the active link */
+.site-header, header.site-header { box-shadow: 0 2px 14px rgba(0,84,112,0.08); }
+.main-nav a.active, .nav-links a.active { color: #0a6a9f; }
+
+/* Footer accent line */
+.site-footer { border-top: 4px solid #28A9E4; }
+
+@media (max-width: 768px) {
+  .hero { padding: 56px 0; }
+  .hero-trust-item { padding: 6px 12px; }
+  .service-card:hover, .portfolio-card:hover, .testimonial-card:hover { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .service-card, .portfolio-card, .testimonial-card { transition: none; } }
+.hero-visual-label { flex: 1 1 auto; }
+.hero-trust { gap: 10px; }
+.hero-trust-item { padding: 7px 12px; }
+.hero-trust-item span { font-size: 0.85rem; white-space: nowrap; }
+@media (max-width: 480px) { .hero-trust-item span { white-space: normal; } }
