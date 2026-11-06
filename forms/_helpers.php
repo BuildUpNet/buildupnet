@@ -34,6 +34,12 @@ function dbOrNull(): ?mysqli {
  * Bots that fill the hidden field are told "sent" (so they do not retry); flooders are told "not sent".
  */
 function guardForm(string $name, string $page, string $okQuery, string $failQuery, int $max = 5, int $window = 600): void {
+    // Cross-site posting: a browser always sends Origin (or Referer) on a form post; if it names another website, drop it quietly.
+    $from = (string)($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '');
+    if ($from !== '') {
+        $fh = strtolower((string)parse_url($from, PHP_URL_HOST)); $sh = strtolower((string)parse_url(SITE_URL, PHP_URL_HOST));
+        if ($fh !== '' && $fh !== $sh && $fh !== 'www.' . $sh && 'www.' . $fh !== $sh && !in_array($fh, ['localhost', '127.0.0.1'], true)) { goBack($page, $okQuery); }
+    }
     if (honeypotTripped()) { goBack($page, $okQuery); }
     if (rateLimitHit('form-' . $name, $max, $window)) { goBack($page, $failQuery); }
 }
