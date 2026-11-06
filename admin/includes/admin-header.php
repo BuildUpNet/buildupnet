@@ -114,7 +114,7 @@ if (can('users')) {
             </div>
             <a href="<?php echo SITE_URL; ?>/" target="_blank" rel="noopener" class="sidebar-view-site" title="View Website"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-globe"/></svg><span class="sb-text">View Website</span></a>
             <a href="<?php echo adminUrl('pages/password.php'); ?>" class="sidebar-view-site <?php echo currentAdminPage() === 'password.php' ? 'on' : ''; ?>" title="Change Password"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-key"/></svg><span class="sb-text">Change Password</span></a>
-            <a href="<?php echo adminUrl('logout.php'); ?>" class="sidebar-logout" title="Logout"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-logout"/></svg><span class="sb-text">Logout</span></a>
+            <form method="POST" action="<?php echo adminUrl('logout.php'); ?>" style="display:inline;margin:0;padding:0;"><?php echo csrfField(); ?><button type="submit" class="sidebar-logout" title="Logout" style="background:none;border:none;cursor:pointer;color:inherit;font:inherit;display:flex;align-items:center;gap:inherit;width:100%;padding:inherit;"><svg class="ni" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-logout"/></svg><span class="sb-text">Logout</span></button></form>
         </div>
     </aside>
     <div class="sb-overlay" id="sbOverlay"></div>

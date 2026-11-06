@@ -42,10 +42,18 @@ if ($view === 'month') {
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="attendance-' . $ym . '.csv"');
         $out = fopen('php://output', 'w'); fwrite($out, "\xEF\xBB\xBF");
+        // Sanitize a CSV field to prevent formula injection in spreadsheet apps.
+        $csvSafe = function (string $v): string {
+            if ($v !== '' && in_array($v[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                return "'" . $v;   // leading single-quote neutralizes the formula
+            }
+            return $v;
+        };
         fputcsv($out, array_merge(['Name', 'Role'], range(1, $dim), ['Present', 'Half day', 'Absent', 'Leave', 'Late days', 'Worked (h)', 'Personal out (h)']));
         foreach ($matrix as $m) {
             $codes = array_map(fn($d) => $d['code'] === '…' ? '' : $d['code'], array_values($m['days']));
-            fputcsv($out, array_merge([$m['u']['name'], ROLE_LABELS[$m['u']['role']] ?? ''], $codes, [$m['t']['P'], $m['t']['H'], $m['t']['A'], $m['t']['L'], $m['t']['late'], round($m['t']['worked'] / 60, 1), round($m['t']['break'] / 60, 1)]));
+            $row = array_merge([$csvSafe($m['u']['name']), $csvSafe(ROLE_LABELS[$m['u']['role']] ?? '')], $codes, [$m['t']['P'], $m['t']['H'], $m['t']['A'], $m['t']['L'], $m['t']['late'], round($m['t']['worked'] / 60, 1), round($m['t']['break'] / 60, 1)]);
+            fputcsv($out, $row);
         }
         exit;
     }

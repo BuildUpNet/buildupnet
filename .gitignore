@@ -1,0 +1,10 @@
+# Database credentials (never commit real passwords)
+includes/db-config.php
+
+# IDE / OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store

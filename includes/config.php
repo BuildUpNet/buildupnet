@@ -5,6 +5,12 @@
 // All other PHP files include this first.
 // ==========================================================
 
+// ---- PHP error hardening (works on FastCGI / PHP-FPM / LiteSpeed, not just mod_php) ----
+ini_set('display_errors', '0');       // never show errors to visitors
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');           // log them instead
+error_reporting(E_ALL);
+
 // All dates and times (blog dates, attendance) use Indian time, whatever the hosting server's clock says
 define('APP_TIMEZONE', 'Asia/Kolkata');
 date_default_timezone_set(APP_TIMEZONE);

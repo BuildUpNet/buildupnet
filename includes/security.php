@@ -26,13 +26,15 @@ function rateLimitExceeded(string $bucket, int $max, int $windowSeconds): bool {
 function rateLimitHit(string $bucket, int $max, int $windowSeconds): bool {
     global $conn;
     if (!$conn) return false;
-    if (rateLimitCount($bucket, $windowSeconds) >= $max) return true;
     try {
+        // Insert first, then count — atomic pattern avoids TOCTOU race where concurrent
+        // requests could all pass the SELECT check before any INSERT completes.
         $st = $conn->prepare("INSERT INTO rate_limits (bucket, ip) VALUES (?, ?)");
         $ip = clientIp(); $st->bind_param('ss', $bucket, $ip); $st->execute();
         if (random_int(1, 50) === 1) $conn->query("DELETE FROM rate_limits WHERE created_at < (NOW() - INTERVAL 1 DAY)");  // housekeeping
     } catch (Throwable $e) { error_log('rate limit insert failed: ' . $e->getMessage()); }
-    return false;
+    // Now check: if the count (including the row we just inserted) exceeds the max, the limit is hit.
+    return rateLimitCount($bucket, $windowSeconds) > $max;
 }
 function rateLimitClear(string $bucket): void {
     global $conn;
