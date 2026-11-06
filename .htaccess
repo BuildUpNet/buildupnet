@@ -27,6 +27,8 @@ RewriteRule (^|/)\.(?!well-known/) - [F,L]
 RewriteRule ^blog/([a-z0-9-]+)/?$ blog-post.php?slug=$1 [L,QSA]
 RewriteRule ^services/([a-z0-9-]+)/?$ service.php?slug=$1 [L,QSA]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
+#   /llms.txt           ->  llms.php  (summary of the site for AI tools, built from the database)
+RewriteRule ^llms\.txt$ llms.php [L]
 # /index.php and /index  ->  /   (one URL for the home page)
 RewriteCond %{THE_REQUEST} \s/index(\.php)?[\s?] [NC]
 RewriteRule ^index(\.php)?$ https://buildupnet.com/ [R=301,L]

@@ -2,8 +2,8 @@
 require_once __DIR__ . '/includes/config.php';
 
 $pageTitle = 'Web Design, App Development & SEO Services | Buildupnet';
-$pageDescription = 'Website design, custom development, ecommerce, apps, SEO, social media, Google Ads and maintenance for businesses across India.';
-$pageKeywords = 'web development services, ecommerce website development, android app development, SEO services India, digital marketing services, networking AMC';
+$pageDescription = 'Website design, custom development, ecommerce, apps, SEO, AEO and GEO for AI search, social media, Google Ads and maintenance for businesses across India.';
+$pageKeywords = 'web development services, ecommerce website development, android app development, SEO services India, AEO services, GEO services, generative engine optimization, digital marketing services, networking AMC';
 
 include __DIR__ . '/includes/header.php';
 ?>
@@ -71,6 +71,24 @@ include __DIR__ . '/includes/header.php';
                 <h3>SEO & Link Building</h3>
                 <p>On-page, technical and local SEO plus white-hat link building through guest posting, niche edits and digital PR.</p>
                 <a href="<?php echo e(serviceUrl('seo-services')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            </div>
+
+            <div class="service-card" data-reveal id="aeo">
+                <div class="service-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5"/><line x1="12" y1="15" x2="12" y2="15"/></svg>
+                </div>
+                <h3>AEO — Answer Engine Optimization</h3>
+                <p>Direct answers, FAQ schema and featured-snippet pages, so Google, voice assistants and AI summaries can quote your business.</p>
+                <a href="<?php echo e(serviceUrl('aeo-services')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            </div>
+
+            <div class="service-card" data-reveal id="geo">
+                <div class="service-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+                </div>
+                <h3>GEO — Generative Engine Optimization</h3>
+                <p>Help ChatGPT, Gemini and Perplexity find, understand and mention your business — entity clarity, citable content and llms.txt.</p>
+                <a href="<?php echo e(serviceUrl('geo-services')); ?>" class="learn-more">Learn more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
 
             <div class="service-card" data-reveal id="content-marketing">

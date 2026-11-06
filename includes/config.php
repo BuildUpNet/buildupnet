@@ -85,6 +85,8 @@ const SERVICE_FALLBACK = [
     ['slug' => 'ecommerce-websites', 'label' => 'Ecommerce Websites', 'anchor' => 'ecommerce',          'cat' => 'Web Development',   'kw' => 'ecommerce,e-commerce,shop,store'],
     ['slug' => 'app-development',    'label' => 'App Development',    'anchor' => 'app-development',    'cat' => 'App Development',   'kw' => 'app,android,ios,mobile'],
     ['slug' => 'seo-services',       'label' => 'SEO Services',       'anchor' => 'seo',                'cat' => 'SEO',               'kw' => 'seo,local seo,google business'],
+    ['slug' => 'aeo-services',       'label' => 'AEO (Answer Engine Optimization)',      'anchor' => 'aeo', 'cat' => 'SEO', 'kw' => 'seo,website,local seo,google business'],
+    ['slug' => 'geo-services',       'label' => 'GEO (Generative Engine Optimization)',  'anchor' => 'geo', 'cat' => 'SEO', 'kw' => 'seo,website,local seo,google business'],
     ['slug' => 'digital-marketing',  'label' => 'Digital Marketing',  'anchor' => 'digital-marketing',  'cat' => 'Digital Marketing', 'kw' => 'marketing,social,ads,content,campaign'],
     ['slug' => 'networking-amc',     'label' => 'Networking & AMC',   'anchor' => 'networking',         'cat' => 'Networking',        'kw' => 'network,amc,cisco'],
 ];
