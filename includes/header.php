@@ -32,6 +32,7 @@ $pageKeywords = trim(preg_replace('/\s+/', ' ', (string)($pageKeywords ?? '')));
 <?php endif; ?>
     <meta name="robots" content="<?php echo htmlspecialchars($pageRobots); ?>">
     <link rel="canonical" href="<?php echo htmlspecialchars($canonical); ?>">
+    <link rel="alternate" type="text/plain" href="<?php echo SITE_URL; ?>/llms.txt" title="llms.txt">
     <link rel="alternate" hreflang="en-in" href="<?php echo htmlspecialchars($canonical); ?>">
     <link rel="alternate" hreflang="x-default" href="<?php echo htmlspecialchars($canonical); ?>">
     <meta name="theme-color" content="#005470">
@@ -102,12 +103,18 @@ $pageKeywords = trim(preg_replace('/\s+/', ' ', (string)($pageKeywords ?? '')));
                                    'areaServed' => 'IN', 'availableLanguage' => ['English', 'Hindi', 'Punjabi']],
                 'employee' => array_map(fn($a) => ['@type' => 'Person', 'name' => $a['name'], 'jobTitle' => $a['role']], authors()),
                 'sameAs' => [SOCIAL_FACEBOOK, SOCIAL_TWITTER, SOCIAL_LINKEDIN, SOCIAL_YOUTUBE],
+                // Topics and services: helps search engines and AI answer tools know what the business is an authority on.
+                'knowsAbout' => ['Web design', 'Web development', 'Mobile app development', 'Search engine optimization (SEO)', 'Answer engine optimization (AEO)', 'Generative engine optimization (GEO)', 'Digital marketing', 'Networking and AMC'],
             ],
             ['@type' => 'WebSite', '@id' => SITE_URL . '/#website', 'url' => SITE_URL . '/', 'name' => SITE_NAME,
              'inLanguage' => 'en-IN', 'publisher' => ['@id' => SITE_URL . '/#organization']],
         ],
     ];
     if (empty($orgSchema['@graph'][0]['employee'])) unset($orgSchema['@graph'][0]['employee']);
+    // The services come from the service_pages table (Admin -> Service Pages), so this list is always current.
+    $offerItems = [];
+    foreach (servicesList(true) as $sv) $offerItems[] = ['@type' => 'Service', 'name' => $sv['label'], 'url' => $sv['url']];   // plain Service items: no 'Offer', so Google never treats a service as a shop product
+    if ($offerItems) $orgSchema['@graph'][0]['hasOfferCatalog'] = ['@type' => 'OfferCatalog', 'name' => SITE_NAME . ' services', 'itemListElement' => $offerItems];
 
     // ===== Breadcrumbs for every inner page (blog posts add their own, home has one in index.php) =====
     $crumbNames = ['about.php' => 'About', 'services.php' => 'Services', 'portfolio.php' => 'Our Work', 'careers.php' => 'Careers',
