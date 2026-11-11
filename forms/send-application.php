@@ -16,6 +16,11 @@ $message    = field('message', 4000);
 if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $position === '') { goBack('careers.php', 'sent=0#apply'); }
 if ($portfolio !== '' && !preg_match('#^https?://#i', $portfolio)) { $portfolio = ''; }
 
+// Drop spam content without uploading file or sending notification
+if (isSpamContent($message, $name, $position)) {
+    goBack('careers.php', 'sent=1#apply');
+}
+
 // ---- Resume upload: pdf/doc/docx, max 5 MB, real type checked, random name ----
 $resumeFile = '';
 $f = $_FILES['resume'] ?? null;

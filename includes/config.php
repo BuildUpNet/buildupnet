@@ -21,6 +21,9 @@ require_once __DIR__ . '/security.php';
 // Base URL — change this when moving from localhost to live server
 define('SITE_URL', 'https://buildupnet.com'); // no trailing slash (must match the .htaccess redirect: non-www)
 
+// Secret salt for signing form tokens and anti-spam verification
+define('FORM_SECRET_KEY', 'bun_sec_7f9c3e218b0542d9a3b680c41031cba8');
+
 // Company info (used in header, footer, contact page, schema)
 define('SITE_NAME', 'Buildupnet');
 define('SITE_TAGLINE', 'Your Trusted IT Partner');

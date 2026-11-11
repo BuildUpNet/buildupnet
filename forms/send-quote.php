@@ -31,6 +31,13 @@ if ($formType === 'quote') {
     $body = "New message from the contact form.\n\nName: $name\nEmail: $email\nPhone: $phone\nSubject: $topic\n\nMessage:\n$message\n";
 }
 
+// Check message content for spam keywords, excessive links, or foreign scripts
+$contentToCheck = $formType === 'quote' ? ($details . ' ' . $company) : ($message . ' ' . $topic);
+if (isSpamContent($contentToCheck, $name, $email)) {
+    // Drop spam silently: tell the spammer "sent" so they don't retry, but DO NOT email or clutter the inbox
+    goBack($page, 'sent=1');
+}
+
 // Save to admin inbox (Enquiries) — failure here must not lose the lead
 $saved = false;
 if ($conn = dbOrNull()) {

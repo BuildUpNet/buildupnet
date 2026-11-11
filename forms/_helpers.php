@@ -44,6 +44,6 @@ function guardForm(string $name, string $page, string $okQuery, string $failQuer
         $fh = strtolower((string)parse_url($from, PHP_URL_HOST)); $sh = strtolower((string)parse_url(SITE_URL, PHP_URL_HOST));
         if ($fh !== '' && $fh !== $sh && $fh !== 'www.' . $sh && 'www.' . $fh !== $sh && !in_array($fh, ['localhost', '127.0.0.1'], true)) { goBack($page, $okQuery); }
     }
-    if (honeypotTripped()) { goBack($page, $okQuery); }
+    if (honeypotTripped() || formTimingSuspicious()) { goBack($page, $okQuery); }
     if (rateLimitHit('form-' . $name, $max, $window)) { goBack($page, $failQuery); }
 }

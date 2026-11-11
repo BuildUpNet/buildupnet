@@ -43,13 +43,102 @@ function rateLimitClear(string $bucket): void {
     catch (Throwable $e) { error_log('rate limit clear failed: ' . $e->getMessage()); }
 }
 
-/** Hidden anti-bot field. Real users never fill it. */
+/**
+ * Multi-layer anti-bot & anti-spam field generator.
+ * 1) Classic decoy: website_url
+ * 2) Secondary decoy: phone_confirm (bots eagerly auto-fill fields with "phone" or "email")
+ * 3) Cryptographic time-gate token: signs current timestamp with HMAC so automated bots (< 3 sec) can be rejected.
+ */
 function honeypotField(): string {
-    return '<div style="position:absolute;left:-9999px;top:-9999px;height:0;overflow:hidden;" aria-hidden="true">'
-         . '<label>Leave this empty<input type="text" name="website_url" value="" tabindex="-1" autocomplete="off"></label></div>';
+    $now = time();
+    $key = defined('FORM_SECRET_KEY') ? FORM_SECRET_KEY : 'bun_default_salt';
+    $hash = hash_hmac('sha256', (string)$now, $key);
+    $token = $now . ':' . $hash;
+
+    return '<div style="position:absolute;left:-9999px;top:-9999px;height:0;overflow:hidden;opacity:0;pointer-events:none;" aria-hidden="true">'
+         . '<label>Leave empty<input type="text" name="website_url" value="" tabindex="-1" autocomplete="off"></label>'
+         . '<label>Do not fill<input type="text" name="phone_confirm" value="" tabindex="-1" autocomplete="off"></label>'
+         . '<input type="hidden" name="form_time_token" value="' . e($token) . '">'
+         . '</div>';
 }
+
 function honeypotTripped(): bool {
-    return trim((string)($_POST['website_url'] ?? '')) !== '';
+    if (trim((string)($_POST['website_url'] ?? '')) !== '') return true;
+    if (trim((string)($_POST['phone_confirm'] ?? '')) !== '') return true;
+    return false;
+}
+
+/**
+ * Validates that the form was filled out by a human:
+ * Rejects requests submitted faster than $minSeconds (default 3s) or older than $maxSeconds (default 24h).
+ */
+function formTimingSuspicious(int $minSeconds = 3, int $maxSeconds = 86400): bool {
+    $token = (string)($_POST['form_time_token'] ?? '');
+    if ($token === '' || strpos($token, ':') === false) {
+        return true; // Token missing -> direct bot script POST
+    }
+    [$timestampStr, $hash] = explode(':', $token, 2);
+    $timestamp = (int)$timestampStr;
+    $key = defined('FORM_SECRET_KEY') ? FORM_SECRET_KEY : 'bun_default_salt';
+    $expectedHash = hash_hmac('sha256', $timestampStr, $key);
+    if (!hash_equals($expectedHash, $hash)) {
+        return true; // Forged or tampered token
+    }
+    $elapsed = time() - $timestamp;
+    if ($elapsed < $minSeconds) {
+        return true; // Bot submitted faster than human speed
+    }
+    if ($elapsed > $maxSeconds) {
+        return true; // Expired / stale form
+    }
+    return false;
+}
+
+/**
+ * Intelligent content heuristic check:
+ * Detects Cyrillic text, excessive links, spam TLDs, and commercial promotional keywords.
+ */
+function isSpamContent(string ...$texts): bool {
+    $combined = implode(' ', $texts);
+    if (trim($combined) === '') return false;
+
+    // 1. Cyrillic / Russian script check (Buildupnet is an Indian IT firm; Cyrillic is 100% spam)
+    if (preg_match('/[\p{Cyrillic}]/u', $combined)) {
+        return true;
+    }
+
+    // 2. Excessive links (> 1 link in a contact inquiry is almost always link-building spam)
+    $linkCount = preg_match_all('#https?://#i', $combined, $matches);
+    if ($linkCount > 1) {
+        return true;
+    }
+
+    // 3. Known spam TLDs or link shorteners
+    if (preg_match('#https?://[^\s/]*\.(ru|xyz|top|click|buzz|rest|work|loan|stream|gq|cf|tk|ml)\b#i', $combined)) {
+        return true;
+    }
+    if (preg_match('#\b(t\.me|telegram\.me|bit\.ly|tinyurl\.com|wa\.me)/#i', $combined)) {
+        return true;
+    }
+
+    // 4. Common automated commercial spam keywords
+    $spamKeywords = [
+        'guest post', 'guest posting', 'sponsored post', 'sponsored article',
+        'seo ranking', 'seo service', 'backlink', 'backlinks', 'da/pa', 'domain authority',
+        'increase your ranking', 'ranking on google', 'organic traffic increase',
+        'casino', 'crypto investment', 'forex trading', 'telegram channel',
+        'viagra', 'cialis', 'adult dating', 'whatsapp marketing software',
+        'bulk email service', 'unsolicited commercial', 'opt-in list',
+        'commercial proposal', 'b2b leads', 'targeted leads'
+    ];
+    $lower = strtolower($combined);
+    foreach ($spamKeywords as $kw) {
+        if (strpos($lower, $kw) !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /** Only allow http(s) links (blocks javascript:, data:, etc.). Returns '' if unsafe. */
