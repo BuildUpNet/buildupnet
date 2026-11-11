@@ -58,6 +58,8 @@ if (!defined('SITE_URL')) { require_once __DIR__ . '/config.php'; }
                 <textarea id="qm-message" name="details" rows="4" required placeholder="Send us your query anytime!"></textarea>
             </div>
 
+            <?php echo turnstileWidget(); ?>
+
             <button type="submit" class="btn btn-primary" style="border:none; width:100%; justify-content:center;">Send</button>
         </form>
     </div>

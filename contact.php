@@ -70,6 +70,8 @@ include __DIR__ . '/includes/header.php';
                                   style="width:100%; padding:13px 16px; border:1.5px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-body); font-size:0.95rem; background:var(--color-white); resize:vertical;"></textarea>
                     </div>
 
+                    <?php echo turnstileWidget(); ?>
+
                     <button type="submit" class="btn btn-primary" style="border:none; width: fit-content;">Send</button>
                 </form>
             </div>

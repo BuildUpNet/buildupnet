@@ -238,6 +238,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
 
                 <p style="font-size:0.85rem; margin:0;">We use your details only for hiring. Read our <a class="text-link" href="<?php echo SITE_URL; ?>/privacy-policy.php">Privacy Policy</a>.</p>
+                <?php echo turnstileWidget(); ?>
                 <button type="submit" class="btn btn-primary" style="border:none; width: fit-content;">Submit Application</button>
                 <p style="font-size:0.85rem; margin-top:-8px;">We review every application — if there's a fit, we'll reach out within a week.</p>
             </form>

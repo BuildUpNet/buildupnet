@@ -24,6 +24,15 @@ define('SITE_URL', 'https://buildupnet.com'); // no trailing slash (must match t
 // Secret salt for signing form tokens and anti-spam verification
 define('FORM_SECRET_KEY', 'bun_sec_7f9c3e218b0542d9a3b680c41031cba8');
 
+// Cloudflare Turnstile (Invisible Anti-Bot CAPTCHA)
+// Set to true to activate once you generate free keys from Cloudflare Dashboard -> Turnstile
+// Cloudflare provides testing keys (always passes):
+//   Site Key:   1x00000000000000000000AA
+//   Secret Key: 1x0000000000000000000000000000000AA
+define('CF_TURNSTILE_ENABLED', false); // Change to true when ready
+define('CF_TURNSTILE_SITE_KEY', '');
+define('CF_TURNSTILE_SECRET_KEY', '');
+
 // Company info (used in header, footer, contact page, schema)
 define('SITE_NAME', 'Buildupnet');
 define('SITE_TAGLINE', 'Your Trusted IT Partner');

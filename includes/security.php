@@ -141,6 +141,75 @@ function isSpamContent(string ...$texts): bool {
     return false;
 }
 
+/**
+ * Renders the Cloudflare Turnstile widget.
+ * In 'non-interactive' mode, it runs seamlessly in the background with zero clicks for real users.
+ * Returns empty string if disabled or site key is not configured.
+ */
+function turnstileWidget(string $theme = 'auto', string $action = 'submit'): string {
+    if (!defined('CF_TURNSTILE_ENABLED') || !CF_TURNSTILE_ENABLED || empty(CF_TURNSTILE_SITE_KEY)) {
+        return '';
+    }
+    return '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
+         . '<div class="cf-turnstile" data-sitekey="' . e(CF_TURNSTILE_SITE_KEY) . '" data-theme="' . e($theme) . '" data-action="' . e($action) . '" style="margin: 10px 0;"></div>';
+}
+
+/**
+ * Validates Cloudflare Turnstile response with Cloudflare's verify API.
+ * Fails open (returns true) if Turnstile is disabled or if Cloudflare API is temporarily unreachable.
+ */
+function turnstileVerify(?string $responseToken = null): bool {
+    if (!defined('CF_TURNSTILE_ENABLED') || !CF_TURNSTILE_ENABLED || empty(CF_TURNSTILE_SECRET_KEY)) {
+        return true; // Not enabled -> allow pass-through
+    }
+    $token = $responseToken ?? (string)($_POST['cf-turnstile-response'] ?? '');
+    if ($token === '') {
+        return false; // Token missing when Turnstile is active -> bot blocked
+    }
+
+    $postData = http_build_query([
+        'secret'   => CF_TURNSTILE_SECRET_KEY,
+        'response' => $token,
+        'remoteip' => clientIp(),
+    ]);
+
+    $result = null;
+    if (function_exists('curl_init')) {
+        $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+        $res = curl_exec($ch);
+        curl_close($ch);
+        if ($res !== false) {
+            $result = json_decode($res, true);
+        }
+    }
+
+    if ($result === null && ini_get('allow_url_fopen')) {
+        $ctx = stream_context_create([
+            'http' => [
+                'method'  => 'POST',
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'content' => $postData,
+                'timeout' => 6,
+            ],
+        ]);
+        $res = @file_get_contents('https://challenges.cloudflare.com/turnstile/v0/siteverify', false, $ctx);
+        if ($res !== false) {
+            $result = json_decode($res, true);
+        }
+    }
+
+    if (is_array($result) && isset($result['success'])) {
+        return (bool)$result['success'];
+    }
+
+    // Fail open if network connection to Cloudflare fails so users aren't locked out
+    return true;
+}
+
 /** Only allow http(s) links (blocks javascript:, data:, etc.). Returns '' if unsafe. */
 function safeUrl(?string $url): string {
     $url = trim((string)$url);
