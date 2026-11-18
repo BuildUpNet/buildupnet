@@ -21,8 +21,11 @@ require_once __DIR__ . '/security.php';
 // Base URL — change this when moving from localhost to live server
 define('SITE_URL', 'https://buildupnet.com'); // no trailing slash (must match the .htaccess redirect: non-www)
 
-// Secret salt for signing form tokens and anti-spam verification
-define('FORM_SECRET_KEY', 'bun_sec_7f9c3e218b0542d9a3b680c41031cba8');
+// Secret for signing form tokens (anti-spam). It is built from the database login in includes/db-config.php,
+// so no secret is written in this file (this file may be shared or pushed to Git).
+$__dbc = is_file(__DIR__ . '/db-config.php') ? (@include __DIR__ . '/db-config.php') : [];
+define('FORM_SECRET_KEY', hash('sha256', 'bun-form|' . (is_array($__dbc) ? ($__dbc['pass'] ?? '') . '|' . ($__dbc['user'] ?? '') : '') . '|' . __DIR__));
+unset($__dbc);
 
 // Cloudflare Turnstile (Invisible Anti-Bot CAPTCHA)
 // Set to true to activate once you generate free keys from Cloudflare Dashboard -> Turnstile

@@ -1,4 +1,11 @@
 <?php
+// ==========================================================
+// Buildupnet — Header / Navigation
+// Place this file at: /includes/header.php
+// Included at the top of every page via: include 'includes/header.php';
+// Each page should set $pageTitle and $pageDescription before including this.
+// ==========================================================
+
 if (!defined('SITE_URL')) { require_once __DIR__ . '/config.php'; }
 
 if (!isset($pageTitle)) $pageTitle = SITE_NAME . ' | ' . SITE_TAGLINE;
@@ -6,7 +13,7 @@ if (!isset($pageDescription)) $pageDescription = 'Buildupnet is a trusted IT par
 if (!isset($pageImage)) $pageImage = OG_IMAGE_DEFAULT;
 if (!isset($pageType)) $pageType = 'website';
 
-$canonical = $canonicalUrl ?? canonicalUrl();      
+$canonical = $canonicalUrl ?? canonicalUrl();      // blog posts set their own pretty URL
 if (!isset($pageRobots)) $pageRobots = 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
 if (!isset($headExtra)) $headExtra = '';
 $pageKeywords = trim(preg_replace('/\s+/', ' ', (string)($pageKeywords ?? '')));
@@ -106,7 +113,7 @@ $pageKeywords = trim(preg_replace('/\s+/', ' ', (string)($pageKeywords ?? '')));
     if (empty($orgSchema['@graph'][0]['employee'])) unset($orgSchema['@graph'][0]['employee']);
     // The services come from the service_pages table (Admin -> Service Pages), so this list is always current.
     $offerItems = [];
-    foreach (servicesList(true) as $sv) $offerItems[] = ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $sv['label'], 'url' => $sv['url']]];
+    foreach (servicesList(true) as $sv) $offerItems[] = ['@type' => 'Service', 'name' => $sv['label'], 'url' => $sv['url']];   // plain Service items: no 'Offer', so Google never treats a service as a shop product
     if ($offerItems) $orgSchema['@graph'][0]['hasOfferCatalog'] = ['@type' => 'OfferCatalog', 'name' => SITE_NAME . ' services', 'itemListElement' => $offerItems];
 
     // ===== Breadcrumbs for every inner page (blog posts add their own, home has one in index.php) =====

@@ -8,3 +8,7 @@ includes/db-config.php
 *.swo
 Thumbs.db
 .DS_Store
+
+# Resumes and uploaded files hold personal data: never commit them
+admin/uploads/resumes/*
+!admin/uploads/resumes/.htaccess

@@ -34,13 +34,11 @@ function dbOrNull(): ?mysqli {
  * Bots that fill the hidden field are told "sent" (so they do not retry); flooders are told "not sent".
  */
 function guardForm(string $name, string $page, string $okQuery, string $failQuery, int $max = 5, int $window = 600): void {
-    // Cross-site posting: a browser always sends Origin (or Referer) on a form post.
-    // If neither header is present, the request may come from a tool that stripped them — treat as suspicious.
+    // Cross-site posting: if the post names ANOTHER website in Origin/Referer, drop it quietly.
+    // A post with neither header is not rejected here: some privacy tools remove them and a real customer would lose the enquiry.
+    // Bots without the signed form token / with the hidden field / too fast / too many are still stopped by the checks below.
     $from = (string)($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '');
-    if ($from === '') {
-        // No Origin/Referer at all — likely a direct POST from a script/tool, not a real browser form.
-        goBack($page, $failQuery);
-    } else {
+    if ($from !== '') {
         $fh = strtolower((string)parse_url($from, PHP_URL_HOST)); $sh = strtolower((string)parse_url(SITE_URL, PHP_URL_HOST));
         if ($fh !== '' && $fh !== $sh && $fh !== 'www.' . $sh && 'www.' . $fh !== $sh && !in_array($fh, ['localhost', '127.0.0.1'], true)) { goBack($page, $okQuery); }
     }
