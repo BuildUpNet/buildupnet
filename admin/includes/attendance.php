@@ -1,0 +1,225 @@
+<?php
+// ==========================================================
+// Attendance helpers (working hours, lunch, late, month summary).
+// All timings come from the work_schedules table; holidays from the holidays table.
+// ==========================================================
+
+const ATT_STATUS = [          // stored status => [label, short code, badge class]
+    'present'  => ['Present',  'P', 'abadge-green'],
+    'half_day' => ['Half day', 'H', 'abadge-orange'],
+    'absent'   => ['Absent',   'A', 'abadge-red'],
+    'leave'    => ['On leave', 'L', 'abadge-blue'],
+];
+const ATT_DERIVED = [         // shown in reports when there is no row
+    'weekoff' => ['Weekly off', 'W', 'abadge-grey'],
+    'holiday' => ['Holiday',    'HD', 'abadge-grey'],
+    'absent'  => ['Absent',     'A', 'abadge-red'],
+];
+const LEAVE_TYPES = ['casual' => 'Casual leave', 'sick' => 'Sick leave', 'unpaid' => 'Unpaid leave', 'other' => 'Other'];
+const BREAK_KINDS = ['personal' => 'Personal / urgent work (time is deducted)', 'office' => 'Office / client work (counted as worked)'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ATT_MAX_SHIFT_HOURS = 18;   // a shift that began yesterday stays open for punching out this long (e.g. in 10:00, out 01:00 the next night)
+
+/** The person's schedule; a default row (defaults live in the table) is created the first time it is needed. */
+function attSchedule(int $uid): array {
+    global $conn;
+    $default = ['user_id' => $uid, 'work_start' => '10:00:00', 'work_end' => '19:00:00', 'lunch_start' => '13:30:00', 'lunch_end' => '14:30:00', 'grace_minutes' => 10, 'weekly_off' => '0'];
+    try {
+        $row = dbRow("SELECT * FROM work_schedules WHERE user_id = ?", 'i', [$uid]);
+        if (!$row) {
+            $st = $conn->prepare("INSERT IGNORE INTO work_schedules (user_id) VALUES (?)"); $st->bind_param('i', $uid); $st->execute();
+            $row = dbRow("SELECT * FROM work_schedules WHERE user_id = ?", 'i', [$uid]);
+        }
+        return $row ?: $default;
+    } catch (Throwable $e) {                       // attendance tables not created yet (upgrade-attendance.sql not run)
+        error_log('attSchedule: ' . $e->getMessage());
+        return $default;
+    }
+}
+
+/** [Y-m-d => holiday name] for a date range. */
+function attHolidays(string $from, string $to): array {
+    $out = [];
+    foreach (dbRows("SELECT holiday_date, name FROM holidays WHERE holiday_date BETWEEN ? AND ?", 'ss', [$from, $to]) as $h) $out[$h['holiday_date']] = $h['name'];
+    return $out;
+}
+
+function attMin(?string $t): ?int {                 // "13:30:00" -> 810
+    if ($t === null || $t === '') return null;
+    $p = explode(':', $t); return (int)$p[0] * 60 + (int)$p[1];
+}
+function attHm(?string $t): string { return $t ? substr($t, 0, 5) : '—'; }
+/** A time after midnight counts as the next day: minutes of $t that are never before $ref. */
+function attNorm(int $t, int $ref): int { return $t < $ref ? $t + 1440 : $t; }
+/** Check-out text for tables: "01:00 (next day)" when the person stayed past midnight. */
+function attOutText(?array $rec): string {
+    if (!$rec || empty($rec['check_out'])) return '—';
+    $in = attMin($rec['check_in'] ?? null); $out = attMin($rec['check_out']);
+    return attHm($rec['check_out']) . (($in !== null && $out < $in) ? ' (next day)' : '');
+}
+/** Timestamp of a punch time of a shift that began on $rec['att_date'] at $rec['check_in'] (a time before the check-in time is the next day). */
+function attEventTs(array $rec, string $t): int {
+    $ts = strtotime($rec['att_date'] . ' ' . $t); $base = strtotime($rec['att_date'] . ' ' . $rec['check_in']);
+    return $ts < $base ? $ts + 86400 : $ts;
+}
+function attElapsed(array $rec, string $t): int { return max(0, time() - attEventTs($rec, $t)); }
+/** Yesterday's shift that is still open (checked in, not checked out, within ATT_MAX_SHIFT_HOURS): the person may still punch out of it. */
+function attOpenShift(int $uid): ?array {
+    $yday = date('Y-m-d', strtotime('-1 day'));
+    $r = dbRow("SELECT * FROM attendance WHERE user_id = ? AND att_date = ? AND check_in IS NOT NULL AND check_out IS NULL AND status <> 'leave'", 'is', [$uid, $yday]);
+    if (!$r) return null;
+    return (time() - strtotime($yday . ' ' . $r['check_in'])) <= ATT_MAX_SHIFT_HOURS * 3600 ? $r : null;
+}
+function attDur(?int $m): string { return $m === null ? '—' : intdiv($m, 60) . 'h ' . str_pad((string)($m % 60), 2, '0', STR_PAD_LEFT) . 'm'; }
+function attIsWeekOff(array $sched, string $date): bool { return in_array((string)date('w', strtotime($date)), explode(',', $sched['weekly_off']), true); }
+
+/** Minutes worked = (check-out − check-in) − lunch. Lunch is the real lunch out/in when recorded, otherwise the planned lunch. */
+function attWorked(array $rec, array $sched): ?int {
+    $in = attMin($rec['check_in'] ?? null); $out = attMin($rec['check_out'] ?? null);
+    if ($in === null || $out === null || $out === $in) return null;
+    $out = attNorm($out, $in);                       // out before in = the person stayed past midnight
+    $lo = attMin($rec['lunch_out'] ?? null); $li = attMin($rec['lunch_in'] ?? null);
+    if ($lo !== null) $lo = attNorm($lo, $in);
+    if ($lo !== null && $li !== null) $li = attNorm($li, $lo);
+    if ($lo !== null && $li !== null && $li > $lo) $lunch = $li - $lo;
+    else { $ls = attMin($sched['lunch_start']); $le = attMin($sched['lunch_end']); $lunch = ($in <= $ls && $out >= $le) ? $le - $ls : 0; }
+    return max(0, $out - $in - $lunch - (int)($rec['break_min'] ?? 0));   // personal / urgent exits are not work time
+}
+/** Minutes a full day should have (end − start − lunch). */
+function attPlanned(array $sched): int {
+    $s = attMin($sched['work_start']); $e = attNorm(attMin($sched['work_end']), $s);                 // a night schedule may end after midnight
+    $ls = attMin($sched['lunch_start']); $le = attNorm(attMin($sched['lunch_end']), $ls);
+    return max(0, $e - $s - ($le - $ls));
+}
+/** Minutes late (0 when inside the grace time). */
+function attLate(array $rec, array $sched): int {
+    $in = attMin($rec['check_in'] ?? null); if ($in === null) return 0;
+    $late = $in - attMin($sched['work_start']);
+    return $late > (int)$sched['grace_minutes'] ? $late : 0;
+}
+
+/** Exits during the day for a date range: [Y-m-d => ['personal' => min, 'office' => min, 'open' => bool, 'count' => n, 'rows' => [...]]]. Safe if the table does not exist yet. */
+function attBreakMap(int $uid, string $from, string $to): array {
+    $map = [];
+    foreach (dbRows("SELECT * FROM attendance_breaks WHERE user_id = ? AND att_date BETWEEN ? AND ? ORDER BY att_date, out_at", 'iss', [$uid, $from, $to]) as $b) {
+        $d = $b['att_date'];
+        $map[$d] ??= ['personal' => 0, 'office' => 0, 'open' => false, 'count' => 0, 'rows' => []];
+        $map[$d]['count']++; $map[$d]['rows'][] = $b;
+        if ($b['in_at'] === null) { $map[$d]['open'] = true; continue; }               // never closed: no minutes counted (a manager can fix it)
+        $m = max(0, attNorm(attMin($b['in_at']), attMin($b['out_at'])) - attMin($b['out_at']));
+        $map[$d][$b['kind'] === 'office' ? 'office' : 'personal'] += $m;
+    }
+    return $map;
+}
+
+/** Today's punch state for one person: in | working | lunch | break | done (+ the record, the open break and today's breaks). */
+function attToday(int $uid): array {
+    $today = date('Y-m-d');
+    $rec = dbRow("SELECT * FROM attendance WHERE user_id = ? AND att_date = ?", 'is', [$uid, $today]);
+    $date = $today; $carry = false;
+    if (!$rec || !$rec['check_in']) {                // not checked in today: maybe still inside yesterday's shift (works past midnight)
+        $open = attOpenShift($uid);
+        if ($open) { $rec = $open; $date = $open['att_date']; $carry = true; }
+    }
+    $map = attBreakMap($uid, $date, $date)[$date] ?? ['personal' => 0, 'office' => 0, 'open' => false, 'count' => 0, 'rows' => []];
+    $open = null; foreach ($map['rows'] as $b) if ($b['in_at'] === null) $open = $b;
+    if ($rec) $rec['break_min'] = $map['personal'];
+    $state = !$rec || !$rec['check_in'] ? 'in' : ($rec['check_out'] ? 'done' : ($open ? 'break' : ($rec['lunch_out'] && !$rec['lunch_in'] ? 'lunch' : 'working')));
+    return ['rec' => $rec, 'state' => $state, 'open' => $open, 'breaks' => $map, 'date' => $date, 'carry' => $carry];
+}
+
+/**
+ * Every day of a month for one person: [date => ['code','label','class','rec','worked','late']].
+ * No row on a past working day = Absent. Days before the person joined and future days stay blank.
+ */
+function attMonth(array $user, string $ym, ?array $sched = null, ?array $holidays = null): array {
+    $sched = $sched ?? attSchedule((int)$user['id']);
+    $first = $ym . '-01'; $last = date('Y-m-t', strtotime($first));
+    $holidays = $holidays ?? attHolidays($first, $last);
+    $recs = [];
+    foreach (dbRows("SELECT * FROM attendance WHERE user_id = ? AND att_date BETWEEN ? AND ?", 'iss', [(int)$user['id'], $first, $last]) as $r) $recs[$r['att_date']] = $r;
+    $leaves = dbRows("SELECT from_date, to_date FROM leave_requests WHERE user_id = ? AND status = 'approved' AND from_date <= ? AND to_date >= ?", 'iss', [(int)$user['id'], $last, $first]);
+    $onLeave = function (string $d) use ($leaves) { foreach ($leaves as $l) if ($d >= $l['from_date'] && $d <= $l['to_date']) return true; return false; };
+    $joined = substr((string)($user['created_at'] ?? '2000-01-01'), 0, 10);
+    $brk = attBreakMap((int)$user['id'], $first, $last);
+    $today = date('Y-m-d'); $out = [];
+    for ($d = $first; $d <= $last; $d = date('Y-m-d', strtotime($d . ' +1 day'))) {
+        $rec = $recs[$d] ?? null; $row = ['date' => $d, 'rec' => $rec, 'worked' => null, 'late' => 0, 'holiday' => $holidays[$d] ?? null, 'br' => $brk[$d] ?? null];
+        if ($rec) { $rec['break_min'] = $brk[$d]['personal'] ?? 0; $row['rec'] = $rec; }
+        if ($rec) {
+            [$label, $code, $class] = ATT_STATUS[$rec['status']] ?? [$rec['status'], '?', 'abadge-grey'];
+            $row += compact('label', 'code', 'class');
+            $row['worked'] = attWorked($rec, $sched); $row['late'] = attLate($rec, $sched);
+        } elseif ($d < $joined)                 { $row += ['label' => '', 'code' => '', 'class' => '']; }
+        elseif (isset($holidays[$d]))           { [$label, $code, $class] = ATT_DERIVED['holiday']; $row += compact('label', 'code', 'class'); }
+        elseif (attIsWeekOff($sched, $d))       { [$label, $code, $class] = ATT_DERIVED['weekoff']; $row += compact('label', 'code', 'class'); }
+        elseif ($onLeave($d))                   { [$label, $code, $class] = ATT_STATUS['leave'];    $row += compact('label', 'code', 'class'); }   // approved leave
+        elseif ($d > $today)                    { $row += ['label' => '', 'code' => '', 'class' => '']; }
+        elseif ($d === $today)                  { $row += ['label' => 'Not in yet', 'code' => '…', 'class' => 'abadge-grey']; }
+        else                                    { [$label, $code, $class] = ATT_DERIVED['absent'];  $row += compact('label', 'code', 'class'); }
+        $out[$d] = $row;
+    }
+    return $out;
+}
+
+/** Totals for attMonth(). Half day counts as 0.5 present + 0.5 absent. */
+function attTotals(array $days): array {
+    $t = ['P' => 0, 'H' => 0, 'A' => 0, 'L' => 0, 'W' => 0, 'HD' => 0, 'late' => 0, 'worked' => 0, 'break' => 0, 'office' => 0];
+    foreach ($days as $d) {
+        if (isset($t[$d['code']])) $t[$d['code']]++;
+        if ($d['late'] > 0) $t['late']++;
+        $t['worked'] += (int)$d['worked'];
+        $t['break'] += (int)($d['br']['personal'] ?? 0); $t['office'] += (int)($d['br']['office'] ?? 0);
+    }
+    return $t;
+}
+
+/** Valid HH:MM (or HH:MM:SS) -> "HH:MM:00"; anything else -> null. */
+function attTimeOrNull($v): ?string {
+    $v = trim((string)$v);
+    return preg_match('/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/', $v) ? substr($v, 0, 5) . ':00' : null;
+}
+function attDateOrNull($v): ?string {
+    $v = trim((string)$v);
+    $d = DateTime::createFromFormat('Y-m-d', $v);
+    return ($d && $d->format('Y-m-d') === $v) ? $v : null;
+}
+function attMonthParam($v): string { return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string)$v) ? (string)$v : date('Y-m'); }
+
+
+/** Staff list for team pages. Managers see everybody; only the owner may change an owner's records. */
+function attStaff(bool $activeOnly = true): array {
+    return dbRows("SELECT id, name, username, role, is_active, created_at FROM admin_users" . ($activeOnly ? " WHERE is_active = 1" : "") . " ORDER BY FIELD(role,'owner','manager','developer'), name");
+}
+function attCanManage(string $targetRole): bool {
+    return can('attendance.manage') && ($targetRole !== 'owner' || currentRole() === 'owner');
+}
+/** Short label for the sidebar-less pages. */
+function attTabs(string $current): string {
+    $tabs = ['day' => ['Daily', 'attendance-manage.php?view=day'], 'month' => ['Monthly report', 'attendance-manage.php?view=month'],
+             'timings' => ['Work timings', 'schedules.php'], 'holidays' => ['Holidays', 'holidays.php'], 'leaves' => ['Leaves', 'leaves.php']];
+    $h = '<div class="tabs">';
+    foreach ($tabs as $k => [$l, $u]) $h .= '<a href="' . $u . '"' . (in_array($k, ['day', 'month'], true) ? ' data-nav' : '') . ' class="' . ($current === $k ? 'active' : '') . '">' . $l . '</a>';
+    return $h . '</div>';
+}
+
+/** "Out 1h 05m (2 times)" style summary of a day's exits; '—' when none. */
+function attBreakText(?array $br): string {
+    if (!$br || !$br['count']) return '—';
+    $parts = [];
+    if ($br['personal']) $parts[] = attDur($br['personal']) . ' personal';
+    if ($br['office'])   $parts[] = attDur($br['office']) . ' office work';
+    if ($br['open'])     $parts[] = 'not closed';
+    return ($parts ? implode(' + ', $parts) : '0m') . ' · ' . $br['count'] . 'x';
+}
+
+
+/** Live badge for today's row of the team board: who is out right now / on lunch. '' when nothing special. */
+function attLiveChip(array $row, string $today): string {
+    $rec = $row['rec'] ?? null;
+    if ($row['date'] !== $today || !$rec || !$rec['check_in'] || $rec['check_out']) return '';
+    foreach (($row['br']['rows'] ?? []) as $b) {
+        if ($b['in_at'] === null) return ' <span class="abadge abadge-orange" title="' . htmlspecialchars((string)$b['reason'], ENT_QUOTES) . '">Out since ' . attHm($b['out_at']) . ' — ' . htmlspecialchars(mb_substr((string)$b['reason'], 0, 40)) . '</span>';
+    }
+    return ($rec['lunch_out'] && !$rec['lunch_in']) ? ' <span class="abadge abadge-orange">On lunch</span>' : '';
+}

@@ -1,0 +1,2 @@
+# Resumes contain personal data: never served directly. Admin downloads them through admin/download-resume.php
+Require all denied
