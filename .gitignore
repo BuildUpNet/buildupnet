@@ -8,4 +8,3 @@ includes/db-config.php
 *.swo
 Thumbs.db
 .DS_Store
-buildupnet.zip

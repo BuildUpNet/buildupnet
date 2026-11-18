@@ -348,7 +348,7 @@ include __DIR__ . '/includes/header.php';
                 <p class="testimonial-quote">"Working with Buildupnet was smooth from start to finish. They understood our school's vision and delivered a clean, modern website that parents and students genuinely use. Support is always reachable."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">
-                        <img loading="lazy" decoding="async" src="assets/img/team/client-harpreet.jpg" alt="Dr. Harpreet Kaur" onerror="this.style.display='none'">
+                        <img loading="lazy" decoding="async" src="assets/img/team/client-Daljeet-Kaur.webp" alt="Dr. Harpreet Kaur" onerror="this.style.display='none'">
                     </div>
                     <div>
                         <h4>Dr. Harpreet Kaur</h4>
